@@ -12,7 +12,7 @@ Sound Garden is a playful place to make music. Pick sounds, arrange them in your
 
 - **Plant sound seeds:** Mix beats, bass, dreamy chords, and bright melodies. Move them around to shape your song.
 - **Find your sound:** Try Pop, Hip-hop, Rock, or 8-bit sounds, then change any instrument on its own.
-- **Build a chord journey:** Choose a musical mood or pick a chord path, then let melody guidance help notes fit together.
+- **Build a chord journey:** Choose a musical mood or pick a chord path; pitched sounds follow the harmony as your song changes.
 - **Play along:** Use your computer keyboard, the on-screen keys, or a connected MIDI keyboard.
 - **Jam together:** Share a room link so friends can join your song from their own browsers.
 - **Make it yours:** Change the colors, adjust the sounds, and save your finished song as audio.

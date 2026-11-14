@@ -102,10 +102,8 @@
 .garden-chord-track-label small { margin-top: 3px; color: #78827a; font-size: 10px; }
 .garden-chord-track-copy { min-width: 0; }
 .garden-chord-track-controls { display: flex; align-items: center; gap: 3px; margin-top: 5px; }
-.garden-chord-volume { display: flex; width: 38px; align-items: center; }
-.garden-chord-volume input { width: 100%; accent-color: #746193; }
-.garden-guide-button { padding: 3px 5px; border: 1px solid #d9d2e5; border-radius: 8px; background: #fff; color: #584978; font-size: 9px; font-weight: 750; cursor: pointer; }
-.garden-guide-button[aria-pressed="true"] { border-color: #8272a2; background: #e9e3f2; }
+.garden-follow-button { padding: 3px 5px; border: 1px solid #d9d2e5; border-radius: 8px; background: #fff; color: #584978; font-size: 9px; font-weight: 750; cursor: pointer; }
+.garden-follow-button[aria-pressed="true"] { border-color: #8272a2; background: #e9e3f2; }
 .garden-chord-cells { display: grid; grid-template-columns: repeat(var(--bar-count, 16), minmax(0, 1fr)); gap: 4px; padding: 7px 4px; }
 .garden-chord-cells label { position: relative; display: grid; min-width: 0; min-height: 43px; place-items: center; border: 1px solid #ded9e8; border-radius: 10px; background: #fff; cursor: pointer; }
 .garden-chord-cells label.is-current { border-color: #668b68; box-shadow: 0 0 0 2px #88aa7850; }
@@ -185,8 +183,8 @@
 .garden-shell.is-dark .garden-chord-track-label strong { color: #e3e8dc; }
 .garden-shell.is-dark .garden-chord-track-label small { color: #aeb9ac; }
 .garden-shell.is-dark .garden-chord-track-label > span:first-child { background: #393244; }
-.garden-shell.is-dark .garden-guide-button { border-color: #625872; background: #302b38; color: #e1d0ff; }
-.garden-shell.is-dark .garden-guide-button[aria-pressed="true"] { background: #514667; }
+.garden-shell.is-dark .garden-follow-button { border-color: #625872; background: #302b38; color: #e1d0ff; }
+.garden-shell.is-dark .garden-follow-button[aria-pressed="true"] { background: #514667; }
 .garden-shell.is-dark .garden-chord-cells label { border-color: #51475f; background: #302b38; }
 .garden-shell.is-dark .garden-chord-cells label.is-current { border-color: #9dc28e; box-shadow: 0 0 0 2px #9dc28e55; }
 .garden-shell.is-dark .garden-chord-readout { color: #e1d0ff; }

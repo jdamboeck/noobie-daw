@@ -155,6 +155,7 @@ export function App() {
     rootNote: 'C',
     scale: 'major',
     chordProgression: Array.from({ length: 16 }, (_, index) => VIBE_PROGRESSIONS.happy[index % VIBE_PROGRESSIONS.happy.length]),
+    chordLock: true,
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,

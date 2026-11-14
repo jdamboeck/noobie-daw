@@ -16,8 +16,7 @@ export class AudioEngine {
   private initializationPromise: Promise<void> | null = null;
   private isPlaying = false;
   private channels: Map<string, InstrumentChannel> = new Map();
-  private harmonyChannel: InstrumentChannel | null = null;
-  private harmonyStyle: SoundStyle | null = null;
+  private activeMidiNotes = new Map<string, number>();
 
   // Master Chain Nodes
   private masterInput!: Tone.Gain;
@@ -36,6 +35,7 @@ export class AudioEngine {
     bpm: 116,
     rootNote: 'C',
     scale: 'minor',
+    chordLock: true,
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,
@@ -199,17 +199,6 @@ export class AudioEngine {
       channel.setMacro('param2', track.macros.param2);
     }
 
-    const harmonyStyle = this.projectMeta.soundStyle ?? 'pop';
-    if (!this.harmonyChannel || this.harmonyStyle !== harmonyStyle) {
-      this.harmonyChannel?.dispose();
-      this.harmonyChannel = createKeysChannel(this.masterInput, harmonyStyle);
-      this.harmonyStyle = harmonyStyle;
-    }
-    const harmonyVolume = this.projectMeta.chordProgressionVolume ?? 0.65;
-    this.harmonyChannel.volumeNode.volume.value = this.projectMeta.chordProgressionMuted || harmonyVolume <= 0
-      ? -Infinity
-      : Tone.gainToDb(harmonyVolume);
-
     if (this.scheduleId === null) this.setupScheduler();
   }
 
@@ -275,12 +264,6 @@ export class AudioEngine {
   private playNotesAtStep(step: number, time: number): void {
     const hasSolo = this.tracks.some(t => t.soloed);
     const secondsPer16th = (60 / this.projectMeta.bpm) / 4;
-    if (step % 16 === 0 && !this.projectMeta.chordProgressionMuted && this.harmonyChannel) {
-      const bar = Math.floor(step / 16);
-      const chordNotes = this.voicedProgression[bar % this.voicedProgression.length];
-      const gateSeconds = secondsPer16th * 16 * 0.92;
-      chordNotes.forEach((midi, index) => this.harmonyChannel!.triggerNote(midiToNoteName(midi), gateSeconds, time, [84, 72, 68, 58][index] ?? 58));
-    }
 
     for (const { track, note } of this.notesByStep.get(step) ?? []) {
       if (track.muted) continue;
@@ -306,14 +289,14 @@ export class AudioEngine {
             this.projectMeta.rootNote,
             this.projectMeta.scale
           );
-          if (track.instrumentType === 'lead' && this.projectMeta.chordLock) {
+          if (this.projectMeta.chordLock !== false) {
             midiNote = snapMidiToChord(midiNote, this.voicedProgression[Math.floor(step / 16) % this.voicedProgression.length]);
           }
         } else if (note.midi !== undefined) {
           midiNote = this.projectMeta.scaleLock
             ? snapMidiToScale(note.midi, this.projectMeta.rootNote, this.projectMeta.scale)
             : note.midi;
-          if (track.instrumentType === 'lead' && this.projectMeta.chordLock) {
+          if (this.projectMeta.chordLock !== false) {
             midiNote = snapMidiToChord(midiNote, this.voicedProgression[Math.floor(step / 16) % this.voicedProgression.length]);
           }
         } else {
@@ -352,9 +335,12 @@ export class AudioEngine {
       return;
     }
 
-    const snappedMidi = this.projectMeta.scaleLock
+    let snappedMidi = this.projectMeta.scaleLock
       ? snapMidiToScale(rawMidi, this.projectMeta.rootNote, this.projectMeta.scale)
       : rawMidi;
+    if (this.projectMeta.chordLock !== false) {
+      snappedMidi = snapMidiToChord(snappedMidi, this.voicedProgression[Math.floor(this.currentStep / 16) % this.voicedProgression.length]);
+    }
 
     channel.triggerNote(midiToNoteName(snappedMidi), duration, undefined, velocity);
   }
@@ -370,9 +356,13 @@ export class AudioEngine {
       return;
     }
 
-    const midi = this.projectMeta.scaleLock
+    let midi = this.projectMeta.scaleLock
       ? snapMidiToScale(rawMidi, this.projectMeta.rootNote, this.projectMeta.scale)
       : rawMidi;
+    if (this.projectMeta.chordLock !== false) {
+      midi = snapMidiToChord(midi, this.voicedProgression[Math.floor(this.currentStep / 16) % this.voicedProgression.length]);
+    }
+    this.activeMidiNotes.set(`${trackId}:${rawMidi}`, midi);
     const note = midiToNoteName(midi);
     if (channel.attackNote) channel.attackNote(note, undefined, velocity);
     else channel.triggerNote(note, 0.3, undefined, velocity);
@@ -384,9 +374,11 @@ export class AudioEngine {
     const channel = this.channels.get(trackId);
     if (!track || !channel || track.instrumentType === 'drums' || !channel.releaseNote) return;
 
-    const midi = this.projectMeta.scaleLock
+    const midiKey = `${trackId}:${rawMidi}`;
+    const midi = this.activeMidiNotes.get(midiKey) ?? (this.projectMeta.scaleLock
       ? snapMidiToScale(rawMidi, this.projectMeta.rootNote, this.projectMeta.scale)
-      : rawMidi;
+      : rawMidi);
+    this.activeMidiNotes.delete(midiKey);
     channel.releaseNote(midiToNoteName(midi));
   }
 
@@ -426,7 +418,7 @@ export class AudioEngine {
           : note.midi;
       }
       if (midiNote !== undefined) {
-        if (track.instrumentType === 'lead' && this.projectMeta.chordLock) {
+        if (this.projectMeta.chordLock !== false) {
           const bar = Math.floor(note.step / 16) % this.voicedProgression.length;
           midiNote = snapMidiToChord(midiNote, this.voicedProgression[bar]);
         }
@@ -460,7 +452,7 @@ export class AudioEngine {
     for (const channel of this.channels.values()) {
       channel.silenceAll();
     }
-    this.harmonyChannel?.silenceAll();
+    this.activeMidiNotes.clear();
   }
 
   /**

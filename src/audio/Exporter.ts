@@ -169,17 +169,6 @@ export async function exportSongToWav(
 
     const progression = meta.chordProgression?.length ? meta.chordProgression : [0, 5, 3, 4];
     const voicedProgression = getVoicedProgression(progression, meta.chordQualities, meta.rootNote, meta.scale);
-    const harmonyChannel = createKeysChannel(masterInput, meta.soundStyle ?? 'pop');
-    const harmonyVolume = meta.chordProgressionVolume ?? 0.65;
-    harmonyChannel.volumeNode.volume.value = meta.chordProgressionMuted || harmonyVolume <= 0 ? -Infinity : Tone.gainToDb(harmonyVolume);
-    if (!meta.chordProgressionMuted) {
-      for (let bar = 0; bar < meta.totalBars; bar++) {
-        voicedProgression[bar % voicedProgression.length].forEach((midi, tone) => harmonyChannel.triggerNote(
-          midiToNoteName(midi), secondsPerBar * 0.92, bar * secondsPerBar, [84, 72, 68, 58][tone] ?? 58
-        ));
-      }
-    }
-
     scheduledNotes.sort((left, right) => left.startTime - right.startTime);
 
     for (const { channel, track, note, startTime, gateSeconds } of scheduledNotes) {
@@ -207,7 +196,7 @@ export async function exportSongToWav(
           continue;
         }
 
-        if (track.instrumentType === 'lead' && meta.chordLock) {
+        if (meta.chordLock !== false) {
           const bar = Math.floor(startTime / secondsPerBar);
           midiNote = snapMidiToChord(midiNote, voicedProgression[bar % voicedProgression.length]);
         }

@@ -58,8 +58,6 @@ export interface ProjectMeta {
   scale: ScaleMode;
   chordProgression?: number[];
   chordQualities?: ChordQuality[];
-  chordProgressionMuted?: boolean;
-  chordProgressionVolume?: number;
   chordLock?: boolean;
   scaleLock: boolean;
   loopEnabled: boolean;
