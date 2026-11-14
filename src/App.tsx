@@ -97,6 +97,17 @@ const makeBassPhrase = (startBar: number, roots: number[], name: string) => {
   return makeStarterBlock(name, '🎸', 'bass', startBar, 2, notes);
 };
 
+const makeKeysPhrase = (startBar: number, roots: number[], name: string) => {
+  const chordWalk = [0, 2, 4, 2];
+  const notes = roots.flatMap((root, barIndex) => chordWalk.map((chordTone, beat) => ({
+    degree: root + chordTone,
+    step: barIndex * 16 + beat * 4,
+    durationSteps: 3,
+    velocity: beat === 0 ? 82 : 70 - (beat % 2) * 5
+  })));
+  return makeStarterBlock(name, '☁️', 'keys', startBar, 2, notes);
+};
+
 const makeMelodyPhrase = (startBar: number, name: string, notes: BlockTemplate['notes']) =>
   makeStarterBlock(name, '🚀', 'lead', startBar, 2, notes);
 
@@ -110,6 +121,10 @@ const DEFAULT_BLOCKS: MidiBlock[] = [
   makeBassPhrase(3, [3, 4], 'Orbit switch · F to G'),
   makeBassPhrase(5, [0, 5], 'Round two · C to Am'),
   makeBassPhrase(7, [3, 0], 'Home stretch · F to C'),
+  makeKeysPhrase(1, [0, 5], 'Cloud steps · C to Am'),
+  makeKeysPhrase(3, [3, 4], 'Cloud steps · F to G'),
+  makeKeysPhrase(5, [0, 5], 'Cloud steps · C to Am'),
+  makeKeysPhrase(7, [3, 0], 'Cloud steps · F to C'),
   makeMelodyPhrase(3, 'First flight', [
     { degree: 5, step: 0, durationSteps: 2, velocity: 92 },
     { degree: 7, step: 4, durationSteps: 2, velocity: 88 },
@@ -485,16 +500,6 @@ export function App() {
     }
   };
 
-  const handleRemoveTrack = (trackId: string) => {
-    collabManager.removeTrack(trackId);
-    if (activeTrackId === trackId) {
-      setActiveTrackId(tracks.find(track => track.id !== trackId)?.id || '');
-    }
-    if (blocks.some(block => block.trackId === trackId && block.id === selectedBlockId)) {
-      setSelectedBlockId(null);
-    }
-  };
-
   // Export to WAV Handler
   const handleExport = async () => {
     setIsExporting(true);
@@ -553,7 +558,6 @@ export function App() {
         onRemoveBlock={handleRemoveBlock}
         onMoveBlock={handleMoveBlock}
         onToggleMute={(track) => collabManager.updateTrack(track.id, { muted: !track.muted })}
-        onRemoveTrack={handleRemoveTrack}
         onVolumeChange={(trackId, volume) => collabManager.updateTrack(trackId, { volume })}
         onOpenMidi={() => setIsMidiModalOpen(true)}
         onOpenShare={() => setIsShareModalOpen(true)}

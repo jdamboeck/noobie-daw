@@ -64,7 +64,6 @@ interface MusicGardenProps {
   onRemoveBlock: (id: string) => void;
   onMoveBlock: (id: string, trackId: string, startBar: number) => void;
   onToggleMute: (track: Track) => void;
-  onRemoveTrack: (trackId: string) => void;
   onVolumeChange: (trackId: string, volume: number) => void;
   onOpenMidi: () => void;
   onOpenShare: () => void;
@@ -261,12 +260,12 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <div><span className="garden-kicker">YOUR MUSICAL BACKYARD</span><h2>Sound garden <span aria-hidden="true">🌿</span></h2></div>
           <div className="garden-heading-actions">
             <button className="garden-outline-button garden-new-button" onClick={() => setShowFreshConfirm(true)}><FilePlus2 size={18} /> Start fresh</button>
-            <button className="garden-outline-button" onClick={() => setShowAddSound(!showAddSound)} aria-expanded={showAddSound}><Plus size={18} /> Add a sound</button>
+            <button className="garden-outline-button" onClick={() => setShowAddSound(!showAddSound)} aria-expanded={showAddSound}><Plus size={18} /> Add a track</button>
             <button className="garden-primary-button" onClick={props.onExport} disabled={props.isExporting}><Download size={18} /> {props.isExporting ? 'Saving…' : 'Save my song'}</button>
           </div>
         </div>
 
-        {showAddSound && <div className="garden-add-sound" role="group" aria-label="Choose a sound to add">
+        {showAddSound && <div className="garden-add-sound" role="group" aria-label="Choose a track to add">
           <span>What should grow?</span>{SOUNDS.map(sound => <button key={sound.type} onClick={() => { props.onAddTrack(sound.type); setShowAddSound(false); }}><span>{sound.emoji}</span>{sound.name}</button>)}
           <button className="garden-close-add" aria-label="Close add sound menu" onClick={() => setShowAddSound(false)}><X size={18} /></button>
         </div>}
@@ -313,7 +312,6 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
                 <div className="garden-bed-controls">
                   <label className="garden-bed-volume"><span className="sr-only">{friendlyTrackName(track, sameTypeIndex)} volume</span><input type="range" min="0" max="1" step="0.05" value={track.volume} onChange={event => props.onVolumeChange(track.id, Number(event.target.value))} /></label>
                   <button className={`garden-mute-button ${track.muted ? 'is-muted' : ''}`} onClick={() => props.onToggleMute(track)} aria-label={`${track.muted ? 'Wake up' : 'Quiet'} ${friendlyTrackName(track, sameTypeIndex)}`} aria-pressed={track.muted}>{track.muted ? <VolumeX size={17} /> : <Volume2 size={17} />}</button>
-                  {props.tracks.length > 1 && <button className="garden-mute-button" onClick={() => props.onRemoveTrack(track.id)} aria-label={`Remove ${friendlyTrackName(track, sameTypeIndex)}`}><X size={16} /></button>}
                 </div>
                 <div className="garden-bed-vine" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties} onClick={event => {
                   if ((event.target as HTMLElement).closest('button')) return;
