@@ -21,12 +21,13 @@ export interface InstrumentChannel {
 export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
+  const bitCrusher = style === 'chiptunes' ? new Tone.BitCrusher(4) : null;
 
   // Drum Synthesizers with tight, punchy envelopes
   const kickSynth = new Tone.MembraneSynth({
     pitchDecay: style === 'chiptunes' ? 0.012 : style === 'rock' ? 0.035 : style === 'hip-hop' ? 0.075 : 0.05,
     octaves: style === 'chiptunes' ? 2 : style === 'rock' ? 5 : style === 'hip-hop' ? 7 : 6,
-    oscillator: { type: 'sine' },
+    oscillator: { type: style === 'chiptunes' ? 'square' : 'sine' },
     envelope: { attack: 0.001, decay: style === 'chiptunes' ? 0.12 : style === 'rock' ? 0.32 : style === 'hip-hop' ? 0.38 : 0.25, sustain: 0, release: 0.1 }
   });
 
@@ -37,7 +38,8 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
   const snareTone = new Tone.MembraneSynth({
     pitchDecay: 0.01,
     octaves: 2,
-    envelope: { attack: 0.001, decay: 0.1, sustain: 0 }
+    oscillator: { type: style === 'chiptunes' ? 'square' : 'sine' },
+    envelope: { attack: 0.001, decay: style === 'chiptunes' ? 0.06 : 0.1, sustain: 0 }
   });
 
   const clapNoise = new Tone.NoiseSynth({
@@ -77,7 +79,12 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
   percSynth.connect(drumReverb);
   drumReverb.connect(pannerNode);
 
-  pannerNode.connect(volumeNode);
+  if (bitCrusher) {
+    pannerNode.connect(bitCrusher);
+    bitCrusher.connect(volumeNode);
+  } else {
+    pannerNode.connect(volumeNode);
+  }
   volumeNode.connect(destination);
 
   return {
@@ -140,6 +147,7 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
       hatFilter.dispose();
       percSynth.dispose();
       drumReverb.dispose();
+      bitCrusher?.dispose();
       pannerNode.dispose();
       volumeNode.dispose();
     }
@@ -152,10 +160,11 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
 export function createBassChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
+  const bitCrusher = style === 'chiptunes' ? new Tone.BitCrusher(4) : null;
   const distortion = new Tone.Distortion(style === 'rock' ? 0.2 : style === 'chiptunes' ? 0.03 : 0.08);
-  const filter = new Tone.Filter(style === 'hip-hop' ? 720 : 1100, 'lowpass', -24);
-  const mainGain = new Tone.Gain(style === 'chiptunes' ? 0.55 : 0.72);
-  const subGain = new Tone.Gain(style === 'hip-hop' ? 1 : style === 'chiptunes' ? 0.5 : 0.8);
+  const filter = new Tone.Filter(style === 'chiptunes' ? 4200 : style === 'hip-hop' ? 720 : 1100, 'lowpass', -24);
+  const mainGain = new Tone.Gain(style === 'chiptunes' ? 0.8 : 0.72);
+  const subGain = new Tone.Gain(style === 'hip-hop' ? 1 : style === 'chiptunes' ? 0.25 : 0.8);
 
   const synth = new Tone.MonoSynth({
     oscillator: { type: style === 'chiptunes' ? 'square' : style === 'rock' ? 'fatsawtooth' : 'sawtooth' },
@@ -175,8 +184,8 @@ export function createBassChannel(destination: Tone.ToneAudioNode, style: SoundS
       decay: 0.28,
       sustain: 0.12,
       release: 0.18,
-      baseFrequency: 70,
-      octaves: 3,
+      baseFrequency: style === 'chiptunes' ? 180 : 70,
+      octaves: style === 'chiptunes' ? 2 : 3,
       exponent: 2
     }
   });
@@ -193,7 +202,12 @@ export function createBassChannel(destination: Tone.ToneAudioNode, style: SoundS
   mainGain.connect(pannerNode);
   subSynth.connect(subGain);
   subGain.connect(pannerNode);
-  pannerNode.connect(volumeNode);
+  if (bitCrusher) {
+    pannerNode.connect(bitCrusher);
+    bitCrusher.connect(volumeNode);
+  } else {
+    pannerNode.connect(volumeNode);
+  }
   volumeNode.connect(destination);
 
   return {
@@ -238,6 +252,7 @@ export function createBassChannel(destination: Tone.ToneAudioNode, style: SoundS
       distortion.dispose();
       mainGain.dispose();
       subGain.dispose();
+      bitCrusher?.dispose();
       pannerNode.dispose();
       volumeNode.dispose();
     }
@@ -250,12 +265,13 @@ export function createBassChannel(destination: Tone.ToneAudioNode, style: SoundS
 export function createKeysChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
-  const chorus = new Tone.Chorus(2.0, 2.0, style === 'rock' ? 0.12 : 0.25).start();
-  const filter = new Tone.Filter(style === 'hip-hop' ? 2800 : style === 'rock' ? 5600 : 4000, 'lowpass');
+  const bitCrusher = style === 'chiptunes' ? new Tone.BitCrusher(4) : null;
+  const chorus = new Tone.Chorus(2.0, 2.0, style === 'chiptunes' ? 0 : style === 'rock' ? 0.12 : 0.25).start();
+  const filter = new Tone.Filter(style === 'chiptunes' ? 16000 : style === 'hip-hop' ? 2800 : style === 'rock' ? 5600 : 4000, 'lowpass');
 
   const synth = new Tone.PolySynth(Tone.FMSynth, {
     harmonicity: style === 'chiptunes' ? 1 : style === 'rock' ? 2.5 : 2,
-    modulationIndex: style === 'chiptunes' ? 0.15 : style === 'hip-hop' ? 1.5 : 2.5,
+    modulationIndex: style === 'chiptunes' ? 0 : style === 'hip-hop' ? 1.5 : 2.5,
     oscillator: { type: style === 'chiptunes' ? 'square' : style === 'rock' ? 'triangle' : 'sine' },
     modulation: { type: style === 'chiptunes' ? 'square' : 'sine' },
     envelope: {
@@ -271,7 +287,12 @@ export function createKeysChannel(destination: Tone.ToneAudioNode, style: SoundS
   synth.connect(filter);
   filter.connect(chorus);
   chorus.connect(pannerNode);
-  pannerNode.connect(volumeNode);
+  if (bitCrusher) {
+    pannerNode.connect(bitCrusher);
+    bitCrusher.connect(volumeNode);
+  } else {
+    pannerNode.connect(volumeNode);
+  }
   volumeNode.connect(destination);
 
   return {
@@ -311,6 +332,7 @@ export function createKeysChannel(destination: Tone.ToneAudioNode, style: SoundS
       synth.dispose();
       filter.dispose();
       chorus.dispose();
+      bitCrusher?.dispose();
       pannerNode.dispose();
       volumeNode.dispose();
     }
@@ -323,8 +345,9 @@ export function createKeysChannel(destination: Tone.ToneAudioNode, style: SoundS
 export function createLeadChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
-  const delay = new Tone.PingPongDelay({ delayTime: '8n', feedback: style === 'chiptunes' ? 0.08 : 0.2, wet: style === 'hip-hop' ? 0.22 : 0.15 });
-  const filter = new Tone.Filter(style === 'rock' ? 6200 : style === 'hip-hop' ? 3000 : 4500, 'lowpass');
+  const bitCrusher = style === 'chiptunes' ? new Tone.BitCrusher(4) : null;
+  const delay = new Tone.PingPongDelay({ delayTime: '8n', feedback: style === 'chiptunes' ? 0.08 : 0.2, wet: style === 'chiptunes' ? 0.02 : style === 'hip-hop' ? 0.22 : 0.15 });
+  const filter = new Tone.Filter(style === 'chiptunes' ? 14000 : style === 'rock' ? 6200 : style === 'hip-hop' ? 3000 : 4500, 'lowpass');
 
   const synth = new Tone.MonoSynth({
     oscillator: { type: style === 'chiptunes' ? 'square' : style === 'rock' ? 'fatsawtooth' : style === 'hip-hop' ? 'triangle' : 'sawtooth' },
@@ -339,8 +362,8 @@ export function createLeadChannel(destination: Tone.ToneAudioNode, style: SoundS
       decay: 0.15,
       sustain: 0.1,
       release: 0.2,
-      baseFrequency: 450,
-      octaves: 3
+      baseFrequency: style === 'chiptunes' ? 1200 : 450,
+      octaves: style === 'chiptunes' ? 1 : 3
     }
   });
 
@@ -348,7 +371,12 @@ export function createLeadChannel(destination: Tone.ToneAudioNode, style: SoundS
   synth.connect(filter);
   filter.connect(delay);
   delay.connect(pannerNode);
-  pannerNode.connect(volumeNode);
+  if (bitCrusher) {
+    pannerNode.connect(bitCrusher);
+    bitCrusher.connect(volumeNode);
+  } else {
+    pannerNode.connect(volumeNode);
+  }
   volumeNode.connect(destination);
 
   return {
@@ -388,6 +416,7 @@ export function createLeadChannel(destination: Tone.ToneAudioNode, style: SoundS
       synth.dispose();
       filter.dispose();
       delay.dispose();
+      bitCrusher?.dispose();
       pannerNode.dispose();
       volumeNode.dispose();
     }
