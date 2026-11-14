@@ -332,8 +332,8 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
         <div className="garden-seed-shelf">
           <div className="garden-seed-heading"><div><span className="garden-kicker">PICK A SEED</span><h3>Choose a sound to plant</h3></div><p>Melodies and chords use notes from your chosen scale.</p></div>
           <div className="garden-seed-filters" role="group" aria-label="Block categories">
-            {SOUNDS.map(sound => <button key={sound.type} className={`garden-filter ${sound.color} ${seedType === sound.type ? 'is-selected' : ''}`} onClick={() => setSeedType(sound.type)} aria-pressed={seedType === sound.type}><span>{sound.emoji}</span>{sound.label}</button>)}
             <button className={`garden-filter garden-filter-chords ${seedType === 'chords' ? 'is-selected' : ''}`} onClick={() => setSeedType('chords')} aria-pressed={seedType === 'chords'}><span aria-hidden="true">🎼</span>Chord journeys</button>
+            {SOUNDS.map(sound => <button key={sound.type} className={`garden-filter ${sound.color} ${seedType === sound.type ? 'is-selected' : ''}`} onClick={() => setSeedType(sound.type)} aria-pressed={seedType === sound.type}><span>{sound.emoji}</span>{sound.label}</button>)}
           </div>
           {seedType === 'chords' ? <div className="garden-progression-shelf">
             <div className="garden-seed-heading"><div><span className="garden-kicker">CHORD SEEDS</span><h3>Pick a chord journey</h3></div><p>Familiar shapes from pop, hip-hop, rock, blues, jazz and soul.</p></div>
