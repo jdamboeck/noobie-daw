@@ -147,6 +147,15 @@
 .garden-shell.is-dark .garden-map-scroll { border-color: #39473e; background: #1b2520; }
 .garden-shell.is-dark .garden-map-labels { color: #9ba99e; }
 .garden-shell.is-dark .garden-bed { border-color: #344137; }
+.garden-shell.is-dark .garden-bed-controls { border-color: #526455; background: rgba(35, 48, 40, .97); box-shadow: 0 3px 12px #0005; }
+.garden-shell.is-dark .garden-bed-volume input[type="range"] { height: 18px; appearance: none; accent-color: #a9dc91; background: transparent; color-scheme: dark; }
+.garden-shell.is-dark .garden-bed-volume input[type="range"]::-webkit-slider-runnable-track { height: 5px; border: 1px solid #778878; border-radius: 999px; background: #536355; }
+.garden-shell.is-dark .garden-bed-volume input[type="range"]::-webkit-slider-thumb { width: 15px; height: 15px; margin-top: -6px; border: 2px solid #233329; border-radius: 50%; background: #b7e49d; box-shadow: 0 0 0 1px #d3efbf; }
+.garden-shell.is-dark .garden-bed-volume input[type="range"]::-moz-range-track { height: 5px; border: 1px solid #778878; border-radius: 999px; background: #536355; }
+.garden-shell.is-dark .garden-bed-volume input[type="range"]::-moz-range-thumb { width: 11px; height: 11px; border: 2px solid #233329; border-radius: 50%; background: #b7e49d; box-shadow: 0 0 0 1px #d3efbf; }
+.garden-shell.is-dark .garden-mute-button { color: #d0dbd0; }
+.garden-shell.is-dark .garden-mute-button:hover, .garden-shell.is-dark .garden-mute-button.is-muted { background: #3a4d3e; color: #c3e9a9; }
+.garden-shell.is-dark .garden-bed-volume input:focus-visible { outline-color: #c3f39e; }
 .garden-shell.is-dark .garden-bed.is-active { background: linear-gradient(90deg, transparent 205px, color-mix(in srgb, var(--bed), transparent 88%) 205px); }
 .garden-shell.is-dark .garden-bed-name:hover, .garden-shell.is-dark .garden-bed-name[aria-pressed="true"] { background: color-mix(in srgb, var(--bed), #1d2821 82%); }
 .garden-shell.is-dark .garden-bed-vine { background-color: #ffffff08; background-image: linear-gradient(90deg, transparent calc(100% - 1px), #ffffff1b 1px); }
