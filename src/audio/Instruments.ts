@@ -90,7 +90,7 @@ export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentCh
 
       switch (drum) {
         case 'kick':
-          kickSynth.triggerAttackRelease('C1', '16n', t, vel);
+          kickSynth.triggerAttackRelease('C1', '8n', t, vel);
           break;
         case 'snare':
           snareTone.triggerAttackRelease('G2', '16n', t, vel * 0.9);
@@ -119,7 +119,8 @@ export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentCh
       const normalized = value / 100;
       if (paramKey === 'param1') {
         // Param 1 = "Punch"
-        kickSynth.pitchDecay = 0.02 + normalized * 0.06;
+        kickSynth.pitchDecay = 0.025 + normalized * 0.075;
+        kickSynth.envelope.decay = 0.16 + normalized * 0.28;
       } else if (paramKey === 'param2') {
         // Param 2 = "Room Ambience"
         drumReverb.wet.value = normalized * 0.35;
@@ -150,7 +151,9 @@ export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentCh
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
   const distortion = new Tone.Distortion(0.08);
-  const filter = new Tone.Filter(800, 'lowpass', -24);
+  const filter = new Tone.Filter(1100, 'lowpass', -24);
+  const mainGain = new Tone.Gain(0.72);
+  const subGain = new Tone.Gain(0.8);
 
   const synth = new Tone.MonoSynth({
     oscillator: { type: 'sawtooth' },
@@ -160,25 +163,34 @@ export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentCh
       rolloff: -24
     },
     envelope: {
-      attack: 0.005,
-      decay: 0.25,
-      sustain: 0.05,
-      release: 0.1
+      attack: 0.008,
+      decay: 0.3,
+      sustain: 0.42,
+      release: 0.16
     },
     filterEnvelope: {
       attack: 0.005,
-      decay: 0.2,
-      sustain: 0.05,
-      release: 0.15,
+      decay: 0.28,
+      sustain: 0.12,
+      release: 0.18,
       baseFrequency: 70,
       octaves: 3,
       exponent: 2
     }
   });
+  const subSynth = new Tone.MonoSynth({
+    oscillator: { type: 'sine' },
+    filter: { Q: 0.5, type: 'lowpass', rolloff: -12 },
+    envelope: { attack: 0.012, decay: 0.24, sustain: 0.62, release: 0.18 },
+    filterEnvelope: { attack: 0.01, decay: 0.25, sustain: 0.15, release: 0.2, baseFrequency: 45, octaves: 1, exponent: 2 }
+  });
 
   synth.connect(filter);
   filter.connect(distortion);
-  distortion.connect(pannerNode);
+  distortion.connect(mainGain);
+  mainGain.connect(pannerNode);
+  subSynth.connect(subGain);
+  subGain.connect(pannerNode);
   pannerNode.connect(volumeNode);
   volumeNode.connect(destination);
 
@@ -189,35 +201,40 @@ export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentCh
     triggerNote: (note, duration, time, velocity = 100) => {
       const vel = Math.max(0.1, Math.min(1.0, velocity / 127));
       synth.triggerAttackRelease(note, duration, time, vel);
+      subSynth.triggerAttackRelease(note, duration, time, vel);
     },
     attackNote: (note, time, velocity = 100) => {
       const vel = Math.max(0.1, Math.min(1.0, velocity / 127));
       synth.triggerAttack(note, time, vel);
+      subSynth.triggerAttack(note, time, vel);
     },
     releaseNote: (note, time) => {
       synth.triggerRelease(time);
+      subSynth.triggerRelease(time);
     },
     setMacro: (paramKey, value) => {
       const normalized = value / 100;
       if (paramKey === 'param1') {
-        // Param 1 = "Growl" (Distortion drive)
-        distortion.distortion = normalized * 0.4;
+        distortion.distortion = 0.04 + normalized * 0.48;
       } else if (paramKey === 'param2') {
-        // Param 2 = "Cutoff" (Filter brightness)
-        filter.frequency.value = 80 + normalized * 3000;
+        filter.frequency.value = 280 + normalized * 2100;
       }
     },
     silenceAll: () => {
       try {
         synth.triggerRelease();
+        subSynth.triggerRelease();
       } catch (e) {
         // ignore
       }
     },
     dispose: () => {
       synth.dispose();
+      subSynth.dispose();
       filter.dispose();
       distortion.dispose();
+      mainGain.dispose();
+      subGain.dispose();
       pannerNode.dispose();
       volumeNode.dispose();
     }
@@ -233,14 +250,18 @@ export function createKeysChannel(destination: Tone.ToneAudioNode): InstrumentCh
   const chorus = new Tone.Chorus(2.0, 2.0, 0.25).start();
   const filter = new Tone.Filter(4000, 'lowpass');
 
-  const synth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'triangle' },
+  const synth = new Tone.PolySynth(Tone.FMSynth, {
+    harmonicity: 2,
+    modulationIndex: 2.5,
+    oscillator: { type: 'sine' },
+    modulation: { type: 'sine' },
     envelope: {
-      attack: 0.015,
-      decay: 0.35,
-      sustain: 0.15,
-      release: 0.25
-    }
+      attack: 0.008,
+      decay: 0.45,
+      sustain: 0.2,
+      release: 0.45
+    },
+    modulationEnvelope: { attack: 0.01, decay: 0.28, sustain: 0.15, release: 0.3 }
   });
 
   synth.maxPolyphony = 12;
@@ -268,8 +289,8 @@ export function createKeysChannel(destination: Tone.ToneAudioNode): InstrumentCh
     setMacro: (paramKey, value) => {
       const normalized = value / 100;
       if (paramKey === 'param1') {
-        // Param 1 = "Brightness" (Filter cutoff)
-        filter.frequency.value = 400 + normalized * 7000;
+        filter.frequency.value = 900 + normalized * 7100;
+        synth.set({ modulationIndex: 1.2 + normalized * 4.8 });
       } else if (paramKey === 'param2') {
         // Param 2 = "Dreamy Chorus"
         chorus.wet.value = normalized * 0.6;
@@ -302,20 +323,20 @@ export function createLeadChannel(destination: Tone.ToneAudioNode): InstrumentCh
   const filter = new Tone.Filter(4500, 'lowpass');
 
   const synth = new Tone.MonoSynth({
-    oscillator: { type: 'square' },
+    oscillator: { type: 'sawtooth' },
     envelope: {
-      attack: 0.01,
-      decay: 0.2,
-      sustain: 0.2,
-      release: 0.2
+      attack: 0.006,
+      decay: 0.22,
+      sustain: 0.3,
+      release: 0.16
     },
     filterEnvelope: {
       attack: 0.01,
       decay: 0.15,
       sustain: 0.1,
       release: 0.2,
-      baseFrequency: 300,
-      octaves: 2.5
+      baseFrequency: 450,
+      octaves: 3
     }
   });
 

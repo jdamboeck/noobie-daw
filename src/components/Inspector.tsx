@@ -35,10 +35,10 @@ export const Inspector: React.FC<InspectorProps> = ({
 }) => {
   const getPlayfulMacroLabels = (type: Track['instrumentType']) => {
     switch (type) {
-      case 'drums': return { p1: '💥 Punch (Snap!)', p2: '🏰 Room (Big Hall)' };
-      case 'bass': return { p1: '🐯 Growl (Tiger Drive)', p2: '💡 Brightness' };
-      case 'keys': return { p1: '✨ Sparkle', p2: '☁️ Dream Cloud' };
-      case 'lead': return { p1: '🚀 Space Echo', p2: '🏂 Slide Speed' };
+      case 'drums': return { p1: '💥 Punch', p2: '🏠 Room' };
+      case 'bass': return { p1: '🔥 Drive', p2: '🎚️ Tone' };
+      case 'keys': return { p1: '✨ Tone', p2: '🌊 Chorus' };
+      case 'lead': return { p1: '🔁 Echo', p2: '🛝 Glide' };
     }
   };
 
