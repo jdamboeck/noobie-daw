@@ -7,7 +7,7 @@ interface InspectorProps {
   activeTrack: Track;
   selectedBlock: MidiBlock | null;
   meta: ProjectMeta;
-  onUpdateTrackMacros: (macros: { param1: number; param2: number }) => void;
+  onUpdateTrackMacros: (macros: Partial<Track['macros']>) => void;
   onUpdateBlockNotes: (blockId: string, notes: NoteEvent[]) => void;
   onCloseBlock: () => void;
   onAuditionNote: (midi: number) => void;
@@ -123,8 +123,7 @@ export const Inspector: React.FC<InspectorProps> = ({
                 max="100"
                 value={activeTrack.macros.param1}
                 onChange={(e) => onUpdateTrackMacros({
-                  param1: parseInt(e.target.value),
-                  param2: activeTrack.macros.param2
+                  param1: parseInt(e.target.value)
                 })}
                 className="w-full accent-indigo-500 h-2 bg-black/40 rounded-lg cursor-pointer"
               />
@@ -142,7 +141,6 @@ export const Inspector: React.FC<InspectorProps> = ({
                 max="100"
                 value={activeTrack.macros.param2}
                 onChange={(e) => onUpdateTrackMacros({
-                  param1: activeTrack.macros.param1,
                   param2: parseInt(e.target.value)
                 })}
                 className="w-full accent-indigo-500 h-2 bg-black/40 rounded-lg cursor-pointer"

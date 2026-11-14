@@ -8,6 +8,10 @@ export interface TransportSyncMessage {
   timestamp: number;
 }
 
+export type TrackUpdate = Omit<Partial<Track>, 'macros'> & {
+  macros?: Partial<Track['macros']>;
+};
+
 export class CollaborationManager {
   private static instance: CollaborationManager;
   public doc: Y.Doc;
@@ -28,6 +32,7 @@ export class CollaborationManager {
   private receivedTransportTimestamps: Map<number, number> = new Map();
   private awarenessChangeHandler?: () => void;
   private documentUpdateHandler?: () => void;
+  private initialStateTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor() {
     this.doc = new Y.Doc();
@@ -82,19 +87,10 @@ export class CollaborationManager {
       peerOpts: {}
     });
 
-    // Populate initial state if this is the first peer in room
-    this.doc.transact(() => {
-      if (this.yTracks.size === 0 && initialDefaults) {
-        Object.entries(initialDefaults.meta).forEach(([k, v]) => this.yMeta.set(k, v));
-        Object.entries(initialDefaults.masterFx).forEach(([k, v]) => this.yMasterFx.set(k, v));
-        initialDefaults.tracks.forEach(track => this.yTracks.set(track.id, this.createRecord(track)));
-        initialDefaults.blocks.forEach(block => this.yBlocks.set(block.id, this.createRecord(block)));
-      }
-    });
-
     // Setup Awareness (Peers & Presence)
     const awareness = this.provider.awareness;
     awareness.setLocalStateField('user', this.localUser);
+    awareness.setLocalStateField('projectReady', this.yTracks.size > 0);
 
     this.awarenessChangeHandler = () => {
       const states = awareness.getStates();
@@ -119,12 +115,44 @@ export class CollaborationManager {
 
     // Subscribe to shared state changes
     this.documentUpdateHandler = () => {
+      if (this.yTracks.size > 0 && awareness.getLocalState()?.projectReady !== true) {
+        awareness.setLocalStateField('projectReady', true);
+      }
       this.onStateChangeCallbacks.forEach(cb => cb());
     };
     this.doc.on('update', this.documentUpdateHandler);
+
+    if (initialDefaults && this.yTracks.size === 0) {
+      this.initialStateTimer = setTimeout(() => {
+        this.initialStateTimer = null;
+        if (this.yTracks.size > 0) return;
+
+        const states = Array.from(awareness.getStates().entries());
+        const hasReadyPeer = states.some(([clientId, state]) => clientId !== this.doc.clientID && state.projectReady === true);
+        if (hasReadyPeer) return;
+
+        const electedSeeder = states
+          .filter(([, state]) => Boolean(state.user))
+          .map(([clientId]) => clientId)
+          .sort((left, right) => left - right)[0];
+        if (electedSeeder !== this.doc.clientID) return;
+
+        this.doc.transact(() => {
+          Object.entries(initialDefaults.meta).forEach(([key, value]) => this.yMeta.set(key, value));
+          Object.entries(initialDefaults.masterFx).forEach(([key, value]) => this.yMasterFx.set(key, value));
+          initialDefaults.tracks.forEach(track => this.yTracks.set(track.id, this.createRecord(track)));
+          initialDefaults.blocks.forEach(block => this.yBlocks.set(block.id, this.createRecord(block)));
+        });
+        awareness.setLocalStateField('projectReady', true);
+      }, 700);
+    }
   }
 
   public disconnect(): void {
+    if (this.initialStateTimer !== null) {
+      clearTimeout(this.initialStateTimer);
+      this.initialStateTimer = null;
+    }
     if (this.provider) {
       if (this.awarenessChangeHandler) {
         this.provider.awareness.off('change', this.awarenessChangeHandler);
@@ -192,8 +220,8 @@ export class CollaborationManager {
     });
   }
 
-  public updateTrack(trackId: string, update: Partial<Track>): void {
-    this.updateRecord(this.yTracks, trackId, update);
+  public updateTrack(trackId: string, update: TrackUpdate): void {
+    this.updateRecord<Track, TrackUpdate>(this.yTracks, trackId, update);
   }
 
   public addBlock(block: MidiBlock): void {
@@ -203,7 +231,7 @@ export class CollaborationManager {
   }
 
   public updateBlock(blockId: string, update: Partial<MidiBlock>): void {
-    this.updateRecord(this.yBlocks, blockId, update);
+    this.updateRecord<MidiBlock, Partial<MidiBlock>>(this.yBlocks, blockId, update);
   }
 
   public removeBlock(blockId: string): void {
@@ -246,14 +274,20 @@ export class CollaborationManager {
     }
   }
 
-  private updateRecord<T extends object>(map: Y.Map<Y.Map<unknown>>, id: string, update: Partial<T>): void {
+  private updateRecord<T extends object, U extends object>(map: Y.Map<Y.Map<unknown>>, id: string, update: U): void {
     this.doc.transact(() => {
       const current = map.get(id) as unknown;
       if (!current) return;
       if (current instanceof Y.Map) {
         Object.entries(update).forEach(([key, value]) => this.setRecordField(current, key, value));
       } else {
-        map.set(id, this.createRecord({ ...(current as T), ...update }));
+        const merged = { ...(current as T), ...update } as T;
+        const currentMacros = (current as { macros?: object }).macros;
+        const updatedMacros = (update as { macros?: object }).macros;
+        if (currentMacros && updatedMacros && 'macros' in merged) {
+          Object.assign(merged, { macros: { ...currentMacros, ...updatedMacros } });
+        }
+        map.set(id, this.createRecord(merged));
       }
     });
   }

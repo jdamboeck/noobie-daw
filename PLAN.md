@@ -4,7 +4,7 @@
 
 - Git is initialized on `main`; the project baseline is committed as `5290926` (`chore: establish project baseline`).
 - There is no automated test script or existing test suite. The production build passes with the current transport changes.
-- The user confirmed hardware MIDI discovery and playback are working. Transport synchronization still needs a two-peer browser check.
+- Hardware MIDI works in the user's browser. Local two-tab collaboration checks pass; external signaling is unavailable in this environment.
 
 ## Work Order
 
@@ -15,7 +15,8 @@
 - [x] Make WAV export honor master effects, track macros, and solo state.
 - [x] Route hardware MIDI Note On and Note Off to sustained instrument voices.
 - [x] Check MIDI device discovery and playback in a browser (user-confirmed).
-- [ ] Check playback, MIDI hot-plugging, and exported audio in a browser.
+- [x] Check playback and MIDI device discovery in the user's browser (user-confirmed).
+- [ ] Check MIDI hot-plugging and exported audio in a browser.
 
 ### 2. Collaboration correctness — in progress
 
@@ -23,7 +24,8 @@
 - [x] Use keyed records for tracks and blocks and clean up provider/document listeners.
 - [x] Store tracks and blocks as nested Yjs maps so concurrent edits to distinct fields (including macro parameters) merge; note arrays remain atomic fields.
 - [x] Schedule peer play commands against a shared future timestamp; require a local Play gesture when the browser has not activated audio.
-- [ ] Check two-peer join, concurrent edits, reconnect, and transport behavior.
+- [x] Check two-peer join, concurrent macro edits, reconnect persistence, and synchronized play/pause/stop in two browser tabs.
+- [ ] Validate transport and collaborative state across independent devices using the signaling service.
 
 ### 3. Playback and project lifecycle — in progress
 
@@ -36,6 +38,6 @@
 ### 4. Verification and release baseline — pending
 
 - [x] Restore writable Git metadata, inspect the baseline diff, and commit the existing project before future feature commits.
-- Add focused automated coverage where feasible, then run the browser smoke checks above.
+- [ ] Add focused automated coverage where feasible, then complete remaining browser smoke checks above.
 - [x] Run `npm run build`; TypeScript and Vite production compilation pass. Vite reports the existing large-chunk advisory.
 - Regenerate `dist` only as part of an intentional build/release workflow.
