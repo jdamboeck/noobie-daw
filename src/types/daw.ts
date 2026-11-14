@@ -55,6 +55,7 @@ export interface ProjectMeta {
   bpm: number;
   rootNote: RootNote;
   scale: ScaleMode;
+  chordProgression?: number[];
   scaleLock: boolean;
   loopEnabled: boolean;
   loopStartBar: number;

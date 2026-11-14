@@ -24,7 +24,8 @@ import {
   X
 } from 'lucide-react';
 import { BlockTemplate, SMART_BLOCKS_TEMPLATES } from '../music/blocksLibrary';
-import { VIBE_PRESETS } from '../music/scales';
+import { SCALE_INTERVALS, VIBE_PRESETS, VIBE_PROGRESSIONS } from '../music/scales';
+import { getChordForDegree } from '../music/harmonic';
 import { SOUND_STYLE_PRESETS } from '../music/soundStyles';
 import { MasterEffects, MidiBlock, NoteEvent, ProjectMeta, SoundStyle, Track, UserPresence } from '../types/daw';
 import { MidiDeviceInfo } from '../types/midi';
@@ -107,6 +108,10 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
   const activeTrack = props.tracks.find(track => track.id === props.activeTrackId) || props.tracks[0];
   const connectedMidi = props.midiDevices.filter(device => device.state === 'connected');
   const selectedVibe = VIBE_PRESETS.find(vibe => vibe.root === props.meta.rootNote && vibe.scale === props.meta.scale) || VIBE_PRESETS[0];
+  const progressionTemplate = VIBE_PROGRESSIONS[selectedVibe.id];
+  const chordProgression = Array.from({ length: props.meta.totalBars }, (_, bar) =>
+    props.meta.chordProgression?.[bar] ?? progressionTemplate[bar % progressionTemplate.length]
+  );
   const seedTemplates = useMemo(
     () => SMART_BLOCKS_TEMPLATES.filter(template => template.instrumentType === seedType),
     [seedType]
@@ -118,7 +123,14 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
 
   const selectVibe = (vibeId: string) => {
     const vibe = VIBE_PRESETS.find(item => item.id === vibeId);
-    if (vibe) props.onMetaChange({ rootNote: vibe.root, scale: vibe.scale });
+    if (vibe) {
+      const progression = VIBE_PROGRESSIONS[vibe.id];
+      props.onMetaChange({
+        rootNote: vibe.root,
+        scale: vibe.scale,
+        chordProgression: Array.from({ length: props.meta.totalBars }, (_, bar) => progression[bar % progression.length])
+      });
+    }
   };
 
   return (
@@ -150,7 +162,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <p className="garden-eyebrow"><Sparkles size={16} aria-hidden="true" /> A tiny musical world, made by you</p>
           <h1 id="garden-title">Plant a sound.<br /><span>Grow a song.</span></h1>
           <p className="garden-intro">Pick a little sound seed, plant it in your garden, and watch your song come alive.</p>
-          {props.meta.rootNote === 'C' && props.meta.scale === 'major' && <p className="garden-song-map"><span>CHORD TRAIL</span> C → Am → F → G → C</p>}
+          <p className="garden-song-map"><span>CHORD TRAIL</span> {chordProgression.slice(0, 5).map(degree => getChordForDegree(degree, props.meta.rootNote, props.meta.scale).label).join(' → ')}</p>
           <div className="garden-vibe-line">
             <span aria-hidden="true">{selectedVibe.emoji}</span>
             <span>Your song feels <strong>{selectedVibe.name.toLowerCase()}</strong></span>
@@ -244,6 +256,29 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
         <div className="garden-map-scroll" role="region" aria-label="Your song arrangement; scroll sideways to see more" tabIndex={0}>
           <div className="garden-map" style={{ minWidth: `${Math.max(760, props.meta.totalBars * 62)}px` }}>
             <div className="garden-map-labels" aria-hidden="true"><span>Sound beds</span><div className="garden-ruler" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties}>{Array.from({ length: props.meta.totalBars }, (_, index) => <span key={index}>{index === 0 ? 'Start' : index === props.meta.totalBars - 1 ? 'Finish' : index === 4 ? 'A little later' : index === 8 ? 'Halfway' : index === 12 ? 'Nearly there' : ''}</span>)}</div></div>
+            <div className="garden-chord-track">
+              <div className="garden-chord-track-label"><span aria-hidden="true">🎼</span><span><strong>Chord garden</strong><small>Choose a chord each bar</small></span></div>
+              <div className="garden-chord-cells" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties}>
+                {chordProgression.map((degree, bar) => {
+                  const chord = getChordForDegree(degree, props.meta.rootNote, props.meta.scale);
+                  return <label className={Math.floor(props.playheadPosition) === bar + 1 ? 'is-current' : ''} key={bar}>
+                    <span className="sr-only">Chord for bar {bar + 1}</span>
+                    <select aria-label={`Chord for bar ${bar + 1}`} value={degree} onChange={event => {
+                      const nextProgression = [...chordProgression];
+                      nextProgression[bar] = Number(event.target.value);
+                      props.onMetaChange({ chordProgression: nextProgression });
+                    }}>
+                      {Array.from({ length: SCALE_INTERVALS[props.meta.scale].length }, (_, option) => {
+                        const optionChord = getChordForDegree(option, props.meta.rootNote, props.meta.scale);
+                        return <option key={option} value={option}>{optionChord.label}</option>;
+                      })}
+                    </select>
+                    <small>{bar + 1}</small>
+                    <span className="garden-chord-readout" aria-hidden="true">{chord.label}</span>
+                  </label>;
+                })}
+              </div>
+            </div>
             {props.tracks.map(track => {
               const sound = soundFor(track);
               const sameTypeTracks = props.tracks.filter(item => item.instrumentType === track.instrumentType);

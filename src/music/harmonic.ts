@@ -94,3 +94,15 @@ export function midiToNoteName(midi: number): string {
 export function midiToFreq(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
+
+export function getChordForDegree(degree: number, root: RootNote, scale: ScaleMode): { label: string; midiNotes: number[] } {
+  const rootMidi = degreeToMidi(degree, 0, 4, root, scale);
+  const midiNotes = [0, 2, 4].map(offset => degreeToMidi(degree + offset, 0, 4, root, scale));
+  const intervals = midiNotes.map(note => note - rootMidi);
+  const quality = intervals[1] === 4 && intervals[2] === 7 ? ''
+    : intervals[1] === 3 && intervals[2] === 7 ? 'm'
+      : intervals[1] === 3 && intervals[2] === 6 ? 'dim'
+        : intervals[1] === 4 && intervals[2] === 8 ? 'aug'
+          : intervals[1] === 4 && intervals[2] === 9 ? '6' : 'sus';
+  return { label: `${midiToNoteName(rootMidi).replace(/\d+$/, '')}${quality}`, midiNotes };
+}

@@ -52,3 +52,12 @@ export const SCALE_LABELS: Record<ScaleMode, string> = {
   blues: '🤠 Funky Blues',
   dorian: '🏖️ Chill & Groovy',
 };
+
+export const VIBE_PROGRESSIONS: Record<string, number[]> = {
+  happy: [0, 5, 3, 4],
+  sad: [0, 5, 3, 6],
+  magic: [0, 4, 2, 4],
+  chill: [0, 3, 4, 0],
+  blues: [0, 0, 3, 0],
+  rock: [0, 5, 3, 4]
+};

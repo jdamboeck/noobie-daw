@@ -6,6 +6,7 @@ import { exportSongToWav } from './audio/Exporter';
 import { MidiManager } from './midi/MidiManager';
 import { CollaborationManager, TransportSyncMessage } from './multiplayer/CollaborationManager';
 import { BlockTemplate, createBlockFromTemplate, SMART_BLOCKS_TEMPLATES } from './music/blocksLibrary';
+import { VIBE_PROGRESSIONS } from './music/scales';
 
 import { MusicGarden } from './components/MusicGarden';
 import { MidiModal } from './components/MidiModal';
@@ -96,17 +97,6 @@ const makeBassPhrase = (startBar: number, roots: number[], name: string) => {
   return makeStarterBlock(name, '🎸', 'bass', startBar, 2, notes);
 };
 
-const makeChordPhrase = (startBar: number, roots: number[], name: string) => {
-  const notes = roots.flatMap((root, barIndex) => [0, 2, 4].map((interval, chordTone) => ({
-    degree: root + interval,
-    octaveOffset: root === 0 ? 0 : -1,
-    step: barIndex * 16,
-    durationSteps: 13,
-    velocity: chordTone === 0 ? 92 : chordTone === 1 ? 83 : 78
-  })));
-  return makeStarterBlock(name, '🎹', 'keys', startBar, 4, notes);
-};
-
 const makeMelodyPhrase = (startBar: number, name: string, notes: BlockTemplate['notes']) =>
   makeStarterBlock(name, '🚀', 'lead', startBar, 2, notes);
 
@@ -120,8 +110,6 @@ const DEFAULT_BLOCKS: MidiBlock[] = [
   makeBassPhrase(3, [3, 4], 'Orbit switch · F to G'),
   makeBassPhrase(5, [0, 5], 'Round two · C to Am'),
   makeBassPhrase(7, [3, 0], 'Home stretch · F to C'),
-  makeChordPhrase(1, [0, 5, 3, 4], 'Takeoff · C Am F G'),
-  makeChordPhrase(5, [0, 5, 3, 0], 'Landing · C Am F C'),
   makeMelodyPhrase(3, 'First flight', [
     { degree: 5, step: 0, durationSteps: 2, velocity: 92 },
     { degree: 7, step: 4, durationSteps: 2, velocity: 88 },
@@ -166,6 +154,7 @@ export function App() {
     bpm: 112,
     rootNote: 'C',
     scale: 'major',
+    chordProgression: Array.from({ length: 16 }, (_, index) => VIBE_PROGRESSIONS.happy[index % VIBE_PROGRESSIONS.happy.length]),
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,

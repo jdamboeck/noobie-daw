@@ -1,6 +1,6 @@
 import * as Tone from 'tone';
 import { MasterEffects, MidiBlock, ProjectMeta, Track } from '../types/daw';
-import { degreeToMidi, midiToNoteName, snapMidiToScale } from '../music/harmonic';
+import { degreeToMidi, getChordForDegree, midiToNoteName, snapMidiToScale } from '../music/harmonic';
 import {
   createBassChannel,
   createDrumChannel,
@@ -164,6 +164,30 @@ export async function exportSongToWav(
           startTime: blockStartSeconds + note.step * secondsPer16th,
           gateSeconds: Math.max(0.04, Math.min(note.durationSteps * secondsPer16th * 0.85, 1.8))
         });
+      }
+    }
+
+    const chordTrack = tracks.find(track => track.instrumentType === 'keys');
+    const chordChannel = chordTrack && !chordTrack.muted && (!hasSolo || chordTrack.soloed)
+      ? channels.get(chordTrack.id)
+      : undefined;
+    const progression = meta.chordProgression?.length ? meta.chordProgression : [0, 5, 3, 4];
+    if (chordTrack && chordChannel) {
+      for (let bar = 0; bar < meta.totalBars; bar++) {
+        const chord = getChordForDegree(progression[bar % progression.length], meta.rootNote, meta.scale);
+        chord.midiNotes.forEach((midi, tone) => scheduledNotes.push({
+          channel: chordChannel,
+          track: chordTrack,
+          note: {
+            id: `harmony-${bar}-${tone}`,
+            degree: progression[bar % progression.length] + tone * 2,
+            step: 0,
+            durationSteps: 16,
+            velocity: [84, 72, 68][tone]
+          },
+          startTime: bar * secondsPerBar,
+          gateSeconds: secondsPerBar * 0.92
+        }));
       }
     }
 

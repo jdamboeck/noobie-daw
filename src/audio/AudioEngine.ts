@@ -1,6 +1,6 @@
 import * as Tone from 'tone';
 import { DrumSound, InstrumentType, MasterEffects, MidiBlock, NoteEvent, ProjectMeta, RootNote, ScaleMode, SoundStyle, Track } from '../types/daw';
-import { degreeToMidi, midiToNoteName, snapMidiToScale } from '../music/harmonic';
+import { degreeToMidi, getChordForDegree, midiToNoteName, snapMidiToScale } from '../music/harmonic';
 import {
   createBassChannel,
   createDrumChannel,
@@ -241,6 +241,20 @@ export class AudioEngine {
   private playNotesAtStep(step: number, time: number): void {
     const hasSolo = this.tracks.some(t => t.soloed);
     const secondsPer16th = (60 / this.projectMeta.bpm) / 4;
+
+    if (step % 16 === 0) {
+      const chordTrack = this.tracks.find(track => track.instrumentType === 'keys');
+      const chordChannel = chordTrack && !chordTrack.muted && (!hasSolo || chordTrack.soloed)
+        ? this.channels.get(chordTrack.id)
+        : undefined;
+      if (chordChannel) {
+        const bar = Math.floor(step / 16);
+        const progression = this.projectMeta.chordProgression?.length ? this.projectMeta.chordProgression : [0, 5, 3, 4];
+        const chord = getChordForDegree(progression[bar % progression.length], this.projectMeta.rootNote, this.projectMeta.scale);
+        const gateSeconds = secondsPer16th * 16 * 0.92;
+        chord.midiNotes.forEach((midi, index) => chordChannel.triggerNote(midiToNoteName(midi), gateSeconds, time, [84, 72, 68][index]));
+      }
+    }
 
     for (const track of this.tracks) {
       if (track.muted) continue;
