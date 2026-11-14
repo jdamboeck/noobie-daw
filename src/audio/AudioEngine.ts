@@ -115,11 +115,25 @@ export class AudioEngine {
    * Syncs project metadata, tracks, and blocks into the engine
    */
   public updateSession(meta: ProjectMeta, tracks: Track[], blocks: MidiBlock[]): void {
+    const previousMeta = this.projectMeta;
     this.projectMeta = { ...meta };
     this.tracks = [...tracks];
     this.blocks = [...blocks];
 
     if (this.isInitialized) {
+      if (this.isPlaying) {
+        const loopStartStep = (this.projectMeta.loopStartBar - 1) * 16;
+        const loopEndStep = Math.min(this.projectMeta.totalBars * 16, (this.projectMeta.loopEndBar - 1) * 16);
+
+        if (this.projectMeta.loopEnabled && (this.currentStep < loopStartStep || this.currentStep >= loopEndStep)) {
+          this.seekToBar(this.projectMeta.loopStartBar);
+        } else if (!this.projectMeta.loopEnabled && this.currentStep >= this.projectMeta.totalBars * 16) {
+          this.stop();
+        }
+      } else if (previousMeta.loopEnabled !== this.projectMeta.loopEnabled && this.currentStep >= this.projectMeta.totalBars * 16) {
+        this.currentStep = this.projectMeta.loopEnabled ? (this.projectMeta.loopStartBar - 1) * 16 : 0;
+      }
+
       this.syncSession();
     }
   }

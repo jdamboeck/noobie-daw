@@ -30,7 +30,7 @@
 - [x] Keep the scheduler stable while editing and stop playback at the end of a non-looping project.
 - [x] Make non-looping play and stop start from bar 1; looping playback uses the configured loop start.
 - [x] Clamp seeks to project bounds and quantize them to sixteenth-note steps.
-- [ ] Reconcile remote transport timing and playhead state for loop changes.
+- [x] Reconcile playhead state when loop settings or project bounds change during playback.
 - [x] Defer local project save/load for now; room state remains ephemeral when all peers leave.
 
 ### 4. Verification and release baseline — pending
