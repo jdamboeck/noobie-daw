@@ -7,6 +7,7 @@ import { MidiManager } from './midi/MidiManager';
 import { CollaborationManager, TransportSyncMessage } from './multiplayer/CollaborationManager';
 import { BlockTemplate, createBlockFromTemplate, SMART_BLOCKS_TEMPLATES } from './music/blocksLibrary';
 import { VIBE_PROGRESSIONS } from './music/scales';
+import { createDemoSong } from './music/demoSongs';
 import {
   createProjectFile,
   isProjectBlock,
@@ -604,6 +605,16 @@ export function App() {
     }
   };
 
+  const handleLoadDemo = (style: SoundStyle) => {
+    const demo = createDemoSong(style);
+    if (!window.confirm(`Load “${demo.meta.title}” and replace the song currently open? This will also update the shared song for everyone in this room.`)) return;
+    handleStop();
+    collabManager.replaceProject(demo);
+    setActiveTrackId(demo.tracks[0].id);
+    setSelectedBlockId(null);
+    setPlayheadPosition(demo.meta.loopStartBar || 1);
+  };
+
   const selectedBlock = blocks.find(b => b.id === selectedBlockId) || null;
 
   return (
@@ -622,6 +633,7 @@ export function App() {
         isExporting={isExporting}
         onSaveProject={handleSaveProject}
         onLoadProject={handleLoadProject}
+        onLoadDemo={handleLoadDemo}
         showKeyboard={showKeyboard}
         pendingRemotePlay={Boolean(pendingRemotePlay)}
         onPlayToggle={handlePlayToggle}

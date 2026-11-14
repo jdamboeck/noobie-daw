@@ -32,6 +32,7 @@ import { SCALE_INTERVALS, VIBE_PRESETS, VIBE_PROGRESSIONS } from '../music/scale
 import { getChordForDegree } from '../music/harmonic';
 import { CHORD_PROGRESSION_SEEDS, fitProgressionToScale } from '../music/chordProgressions';
 import { SOUND_STYLE_PRESETS } from '../music/soundStyles';
+import { DEMO_SONGS } from '../music/demoSongs';
 import { MasterEffects, MidiBlock, NoteEvent, ProjectMeta, SoundStyle, Track, UserPresence } from '../types/daw';
 import { MidiDeviceInfo } from '../types/midi';
 import { Inspector } from './Inspector';
@@ -53,6 +54,7 @@ interface MusicGardenProps {
   isExporting: boolean;
   onSaveProject: () => void;
   onLoadProject: (file: File) => void;
+  onLoadDemo: (style: SoundStyle) => void;
   showKeyboard: boolean;
   onPlayToggle: () => void;
   onStop: () => void;
@@ -167,6 +169,15 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <span><strong>sound garden</strong><small>make a little noise</small></span>
         </a>
         <div className="garden-top-actions">
+          <label className="garden-demo-picker">
+            <span className="sr-only">Load a demo song</span>
+            <select aria-label="Load a demo song" value="" onChange={event => {
+              if (event.target.value) props.onLoadDemo(event.target.value as SoundStyle);
+            }}>
+              <option value="">🎵 Try a demo…</option>
+              {DEMO_SONGS.map(demo => <option key={demo.style} value={demo.style}>{demo.emoji} {demo.label}</option>)}
+            </select>
+          </label>
           <button className="garden-soft-button" onClick={props.onOpenShare} aria-label="Jam with friends" title="Jam with friends">
             <Share2 size={19} aria-hidden="true" />
             <span>Jam with friends{props.peers.length > 0 ? ` · ${props.peers.length}` : ''}</span>
