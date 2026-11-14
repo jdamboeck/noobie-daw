@@ -60,6 +60,10 @@ npm run build
 
 Open `http://localhost:3000` in Google Chrome, Edge, Brave, or Firefox.
 
+### Deploy to GitHub Pages
+
+Push to the `main` branch to build and deploy the app with the workflow in `.github/workflows/deploy-pages.yml`. In the repository settings, open **Pages** and set the build source to **GitHub Actions**. Project sites automatically use the repository path; user or organization sites use the domain root.
+
 ### Testing Multiplayer
 1. Open `http://localhost:3000/?room=jam-test` in one browser tab.
 2. Open the same URL in an Incognito window or on a friend's computer.
