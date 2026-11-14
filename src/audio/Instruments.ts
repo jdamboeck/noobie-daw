@@ -24,15 +24,15 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
 
   // Drum Synthesizers with tight, punchy envelopes
   const kickSynth = new Tone.MembraneSynth({
-    pitchDecay: style === 'rock' ? 0.035 : style === 'hip-hop' ? 0.075 : 0.05,
-    octaves: style === 'rock' ? 5 : style === 'hip-hop' ? 7 : 6,
+    pitchDecay: style === 'chiptunes' ? 0.012 : style === 'rock' ? 0.035 : style === 'hip-hop' ? 0.075 : 0.05,
+    octaves: style === 'chiptunes' ? 2 : style === 'rock' ? 5 : style === 'hip-hop' ? 7 : 6,
     oscillator: { type: 'sine' },
-    envelope: { attack: 0.001, decay: style === 'rock' ? 0.32 : style === 'hip-hop' ? 0.38 : 0.25, sustain: 0, release: 0.1 }
+    envelope: { attack: 0.001, decay: style === 'chiptunes' ? 0.12 : style === 'rock' ? 0.32 : style === 'hip-hop' ? 0.38 : 0.25, sustain: 0, release: 0.1 }
   });
 
   const snareNoise = new Tone.NoiseSynth({
     noise: { type: style === 'hip-hop' ? 'pink' : 'white' },
-    envelope: { attack: 0.001, decay: style === 'rock' ? 0.22 : 0.15, sustain: 0 }
+    envelope: { attack: 0.001, decay: style === 'chiptunes' ? 0.07 : style === 'rock' ? 0.22 : 0.15, sustain: 0 }
   });
   const snareTone = new Tone.MembraneSynth({
     pitchDecay: 0.01,
@@ -48,8 +48,8 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
   const hatFilter = new Tone.Filter(8000, 'highpass');
   const hatSynth = new Tone.MetalSynth({
     envelope: { attack: 0.001, decay: 0.04, release: 0.04 },
-    harmonicity: 5.1,
-    modulationIndex: 28,
+    harmonicity: style === 'chiptunes' ? 2.1 : 5.1,
+    modulationIndex: style === 'chiptunes' ? 8 : 28,
     resonance: 4000,
     octaves: 1.5
   });
@@ -92,7 +92,7 @@ export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundS
 
       switch (drum) {
         case 'kick':
-          kickSynth.triggerAttackRelease('C1', '8n', t, vel);
+          kickSynth.triggerAttackRelease(style === 'chiptunes' ? 'C2' : 'C1', '8n', t, vel);
           break;
         case 'snare':
           snareTone.triggerAttackRelease('G2', '16n', t, vel * 0.9);
