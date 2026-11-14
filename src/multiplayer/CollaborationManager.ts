@@ -17,8 +17,8 @@ export class CollaborationManager {
 
   // Shared types
   public yMeta: Y.Map<any>;
-  public yTracks: Y.Map<Track>;
-  public yBlocks: Y.Map<MidiBlock>;
+  public yTracks: Y.Map<Y.Map<unknown>>;
+  public yBlocks: Y.Map<Y.Map<unknown>>;
   public yMasterFx: Y.Map<any>;
 
   // Callbacks
@@ -87,8 +87,8 @@ export class CollaborationManager {
       if (this.yTracks.size === 0 && initialDefaults) {
         Object.entries(initialDefaults.meta).forEach(([k, v]) => this.yMeta.set(k, v));
         Object.entries(initialDefaults.masterFx).forEach(([k, v]) => this.yMasterFx.set(k, v));
-        initialDefaults.tracks.forEach(track => this.yTracks.set(track.id, track));
-        initialDefaults.blocks.forEach(block => this.yBlocks.set(block.id, block));
+        initialDefaults.tracks.forEach(track => this.yTracks.set(track.id, this.createRecord(track)));
+        initialDefaults.blocks.forEach(block => this.yBlocks.set(block.id, this.createRecord(block)));
       }
     });
 
@@ -173,13 +173,13 @@ export class CollaborationManager {
   public setTracks(tracks: Track[]): void {
     this.doc.transact(() => {
       this.yTracks.clear();
-      tracks.forEach(track => this.yTracks.set(track.id, track));
+      tracks.forEach(track => this.yTracks.set(track.id, this.createRecord(track)));
     });
   }
 
   public addTrack(track: Track): void {
     this.doc.transact(() => {
-      this.yTracks.set(track.id, track);
+      this.yTracks.set(track.id, this.createRecord(track));
     });
   }
 
@@ -187,35 +187,80 @@ export class CollaborationManager {
     this.doc.transact(() => {
       this.yTracks.delete(trackId);
       this.yBlocks.forEach((block, blockId) => {
-        if (block.trackId === trackId) this.yBlocks.delete(blockId);
+        if (this.readRecord<MidiBlock>(block).trackId === trackId) this.yBlocks.delete(blockId);
       });
     });
   }
 
   public updateTrack(trackId: string, update: Partial<Track>): void {
-    this.doc.transact(() => {
-      const track = this.yTracks.get(trackId);
-      if (track) this.yTracks.set(trackId, { ...track, ...update });
-    });
+    this.updateRecord(this.yTracks, trackId, update);
   }
 
   public addBlock(block: MidiBlock): void {
     this.doc.transact(() => {
-      this.yBlocks.set(block.id, block);
+      this.yBlocks.set(block.id, this.createRecord(block));
     });
   }
 
   public updateBlock(blockId: string, update: Partial<MidiBlock>): void {
-    this.doc.transact(() => {
-      const block = this.yBlocks.get(blockId);
-      if (block) this.yBlocks.set(blockId, { ...block, ...update });
-    });
+    this.updateRecord(this.yBlocks, blockId, update);
   }
 
   public removeBlock(blockId: string): void {
     this.doc.transact(() => {
       this.yBlocks.delete(blockId);
     });
+  }
+
+  public getTracks(): Track[] {
+    return Array.from(this.yTracks.values(), record => this.readRecord<Track>(record));
+  }
+
+  public getBlocks(): MidiBlock[] {
+    return Array.from(this.yBlocks.values(), record => this.readRecord<MidiBlock>(record));
+  }
+
+  private createRecord<T extends object>(value: T): Y.Map<unknown> {
+    const record = new Y.Map<unknown>();
+    Object.entries(value).forEach(([key, field]) => {
+      if (field && typeof field === 'object' && !Array.isArray(field)) {
+        record.set(key, this.createRecord(field));
+      } else {
+        record.set(key, field);
+      }
+    });
+    return record;
+  }
+
+  private setRecordField(record: Y.Map<unknown>, key: string, value: unknown): void {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      record.set(key, value);
+      return;
+    }
+
+    const current = record.get(key);
+    if (current instanceof Y.Map) {
+      Object.entries(value).forEach(([nestedKey, nestedValue]) => this.setRecordField(current, nestedKey, nestedValue));
+    } else {
+      record.set(key, this.createRecord(value));
+    }
+  }
+
+  private updateRecord<T extends object>(map: Y.Map<Y.Map<unknown>>, id: string, update: Partial<T>): void {
+    this.doc.transact(() => {
+      const current = map.get(id) as unknown;
+      if (!current) return;
+      if (current instanceof Y.Map) {
+        Object.entries(update).forEach(([key, value]) => this.setRecordField(current, key, value));
+      } else {
+        map.set(id, this.createRecord({ ...(current as T), ...update }));
+      }
+    });
+  }
+
+  private readRecord<T>(record: unknown): T {
+    if (record instanceof Y.Map) return record.toJSON() as T;
+    return record as T;
   }
 
   // --- Subscriptions ---

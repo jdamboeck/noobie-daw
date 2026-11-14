@@ -161,11 +161,11 @@ export function App() {
       if (remoteMeta && Object.keys(remoteMeta).length > 0) {
         setMeta(prev => ({ ...prev, ...remoteMeta }));
       }
-      const remoteTracks = Array.from(collabManager.yTracks.values());
+      const remoteTracks = collabManager.getTracks();
       if (remoteTracks && remoteTracks.length > 0) {
         setTracks([...remoteTracks]);
       }
-      const remoteBlocks = Array.from(collabManager.yBlocks.values());
+      const remoteBlocks = collabManager.getBlocks();
       if (remoteBlocks) {
         setBlocks([...remoteBlocks]);
       }

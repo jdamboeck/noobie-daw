@@ -21,7 +21,7 @@
 
 - [x] Prevent simultaneous peers from duplicating starter state by using deterministic IDs and keyed Yjs maps.
 - [x] Use keyed records for tracks and blocks and clean up provider/document listeners.
-- [ ] Consider field-level shared records if simultaneous edits to different fields of one track or block must merge.
+- [x] Store tracks and blocks as nested Yjs maps so concurrent edits to distinct fields (including macro parameters) merge; note arrays remain atomic fields.
 - [x] Schedule peer play commands against a shared future timestamp; require a local Play gesture when the browser has not activated audio.
 - [ ] Check two-peer join, concurrent edits, reconnect, and transport behavior.
 
