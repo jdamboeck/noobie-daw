@@ -4,7 +4,7 @@ import { MidiDeviceInfo } from './types/midi';
 import { AudioEngine } from './audio/AudioEngine';
 import { exportSongToWav } from './audio/Exporter';
 import { MidiManager } from './midi/MidiManager';
-import { CollaborationManager } from './multiplayer/CollaborationManager';
+import { CollaborationManager, TransportSyncMessage } from './multiplayer/CollaborationManager';
 import { BlockTemplate, createBlockFromTemplate, SMART_BLOCKS_TEMPLATES } from './music/blocksLibrary';
 
 import { Header } from './components/Header';
@@ -117,6 +117,7 @@ export function App() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playheadPosition, setPlayheadPosition] = useState<number>(1);
+  const [pendingRemotePlay, setPendingRemotePlay] = useState<TransportSyncMessage | null>(null);
   const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
@@ -179,20 +180,35 @@ export function App() {
     });
 
     const unsubTransport = collabManager.onTransportAction((action) => {
-      audioEngine.seekToBar(action.bar);
-      setPlayheadPosition(action.bar);
-
       if (action.action === 'play') {
-        audioEngine.play().then(() => setIsPlaying(true)).catch((err) => {
+        audioEngine.seekToBar(action.bar);
+        setPlayheadPosition(action.bar);
+        if (!audioEngine.isReadyForRemotePlayback()) {
+          setPendingRemotePlay(action);
+          setIsPlaying(false);
+          return;
+        }
+        setPendingRemotePlay(null);
+        audioEngine.play(action.timestamp).then(() => setIsPlaying(true)).catch((err) => {
+          setPendingRemotePlay(action);
+          setIsPlaying(false);
           console.error('Could not start playback from a collaborator:', err);
         });
       } else if (action.action === 'pause') {
+        audioEngine.seekToBar(action.bar);
         audioEngine.pause();
         setIsPlaying(false);
+        setPendingRemotePlay(null);
       } else if (action.action === 'stop') {
         audioEngine.stop();
+        audioEngine.seekToBar(action.bar);
         setIsPlaying(false);
-        setPlayheadPosition(meta.loopEnabled ? meta.loopStartBar : 1);
+        setPlayheadPosition(action.bar);
+        setPendingRemotePlay(null);
+      } else {
+        audioEngine.seekToBar(action.bar);
+        setPlayheadPosition(action.bar);
+        setPendingRemotePlay((pending) => pending ? { ...pending, bar: action.bar } : null);
       }
     });
 
@@ -280,9 +296,12 @@ export function App() {
       setIsPlaying(false);
       collabManager.broadcastTransport('pause', playheadPosition);
     } else {
-      await audioEngine.play();
+      const startBar = playheadPosition;
+      if (pendingRemotePlay) audioEngine.seekToBar(startBar);
+      const action = collabManager.broadcastTransport('play', startBar);
+      await audioEngine.play(action.timestamp);
       setIsPlaying(true);
-      collabManager.broadcastTransport('play', playheadPosition);
+      setPendingRemotePlay(null);
     }
   };
 
@@ -291,12 +310,14 @@ export function App() {
     setIsPlaying(false);
     const startBar = meta.loopEnabled ? meta.loopStartBar : 1;
     setPlayheadPosition(startBar);
+    setPendingRemotePlay(null);
     collabManager.broadcastTransport('stop', startBar);
   };
 
   const handleSeek = (bar: number) => {
     audioEngine.seekToBar(bar);
     setPlayheadPosition(bar);
+    setPendingRemotePlay((pending) => pending ? { ...pending, bar } : null);
     collabManager.broadcastTransport('seek', bar);
   };
 
@@ -426,6 +447,12 @@ export function App() {
         onMetaChange={(update) => collabManager.updateMeta(update)}
         onFxChange={(update) => collabManager.updateMasterEffects(update)}
       />
+
+      {pendingRemotePlay && (
+        <div className="bg-indigo-950/80 border-b border-indigo-400/30 px-4 py-2 text-center text-xs text-indigo-100">
+          A collaborator started playback. Click Play to enable audio and join at bar {Math.floor(pendingRemotePlay.bar)}.
+        </div>
+      )}
 
       {/* Main Studio Viewport (Block Palette + Arranger) */}
       <div className="flex-1 flex overflow-hidden">

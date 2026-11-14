@@ -375,7 +375,7 @@ export class AudioEngine {
   /**
    * Playback Controls
    */
-  public async play(): Promise<void> {
+  public async play(startAtTimestamp?: number): Promise<void> {
     await this.init();
 
     if (Tone.context.state !== 'running') {
@@ -389,8 +389,15 @@ export class AudioEngine {
       this.currentStep = startStep;
     }
 
-    Tone.getTransport().start();
+    const startTime = startAtTimestamp === undefined
+      ? undefined
+      : Tone.now() + Math.max(0, (startAtTimestamp - Date.now()) / 1000);
+    Tone.getTransport().start(startTime);
     this.isPlaying = true;
+  }
+
+  public isReadyForRemotePlayback(): boolean {
+    return this.isInitialized && Tone.context.state === 'running';
   }
 
   public pause(): void {

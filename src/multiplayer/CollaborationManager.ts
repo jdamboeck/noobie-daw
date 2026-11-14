@@ -147,14 +147,14 @@ export class CollaborationManager {
   }
 
   // --- Transport Broadcast ---
-  public broadcastTransport(action: 'play' | 'pause' | 'stop' | 'seek', bar: number): void {
-    if (!this.provider) return;
+  public broadcastTransport(action: 'play' | 'pause' | 'stop' | 'seek', bar: number): TransportSyncMessage {
     const msg: TransportSyncMessage = {
       action,
       bar,
-      timestamp: Date.now() + 60 // 60ms forward epoch target
+      timestamp: Date.now() + (action === 'play' ? 250 : 0)
     };
-    this.provider.awareness.setLocalStateField('transportAction', msg);
+    this.provider?.awareness.setLocalStateField('transportAction', msg);
+    return msg;
   }
 
   // --- Mutators for React Components ---
