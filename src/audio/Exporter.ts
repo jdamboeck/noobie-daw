@@ -1,6 +1,6 @@
 import * as Tone from 'tone';
 import { MasterEffects, MidiBlock, ProjectMeta, Track } from '../types/daw';
-import { degreeToMidi, getChordForDegree, midiToNoteName, snapMidiToScale } from '../music/harmonic';
+import { degreeToMidi, getVoicedProgression, midiToNoteName, snapMidiToChord, snapMidiToScale } from '../music/harmonic';
 import {
   createBassChannel,
   createDrumChannel,
@@ -167,27 +167,16 @@ export async function exportSongToWav(
       }
     }
 
-    const chordTrack = tracks.find(track => track.instrumentType === 'keys');
-    const chordChannel = chordTrack && !chordTrack.muted && (!hasSolo || chordTrack.soloed)
-      ? channels.get(chordTrack.id)
-      : undefined;
     const progression = meta.chordProgression?.length ? meta.chordProgression : [0, 5, 3, 4];
-    if (chordTrack && chordChannel) {
+    const voicedProgression = getVoicedProgression(progression, meta.chordQualities, meta.rootNote, meta.scale);
+    const harmonyChannel = createKeysChannel(masterInput, meta.soundStyle ?? 'pop');
+    const harmonyVolume = meta.chordProgressionVolume ?? 0.65;
+    harmonyChannel.volumeNode.volume.value = meta.chordProgressionMuted || harmonyVolume <= 0 ? -Infinity : Tone.gainToDb(harmonyVolume);
+    if (!meta.chordProgressionMuted) {
       for (let bar = 0; bar < meta.totalBars; bar++) {
-        const chord = getChordForDegree(progression[bar % progression.length], meta.rootNote, meta.scale);
-        chord.midiNotes.forEach((midi, tone) => scheduledNotes.push({
-          channel: chordChannel,
-          track: chordTrack,
-          note: {
-            id: `harmony-${bar}-${tone}`,
-            degree: progression[bar % progression.length] + tone * 2,
-            step: 0,
-            durationSteps: 16,
-            velocity: [84, 72, 68][tone]
-          },
-          startTime: bar * secondsPerBar,
-          gateSeconds: secondsPerBar * 0.92
-        }));
+        voicedProgression[bar % voicedProgression.length].forEach((midi, tone) => harmonyChannel.triggerNote(
+          midiToNoteName(midi), secondsPerBar * 0.92, bar * secondsPerBar, [84, 72, 68, 58][tone] ?? 58
+        ));
       }
     }
 
@@ -216,6 +205,11 @@ export async function exportSongToWav(
             : note.midi;
         } else {
           continue;
+        }
+
+        if (track.instrumentType === 'lead' && meta.chordLock) {
+          const bar = Math.floor(startTime / secondsPerBar);
+          midiNote = snapMidiToChord(midiNote, voicedProgression[bar % voicedProgression.length]);
         }
 
         channel.triggerNote(midiToNoteName(midiNote), gateSeconds, startTime, note.velocity);

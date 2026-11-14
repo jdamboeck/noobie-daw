@@ -4,6 +4,7 @@ export type ScaleMode = 'major' | 'minor' | 'pentatonic_major' | 'pentatonic_min
 
 export type InstrumentType = 'drums' | 'bass' | 'keys' | 'lead';
 export type SoundStyle = 'hip-hop' | 'rock' | 'chiptunes' | 'pop';
+export type ChordQuality = 'diatonic' | 'dominant7' | 'major7' | 'minor7';
 
 export type DrumSound = 'kick' | 'snare' | 'clap' | 'hat_closed' | 'hat_open' | 'perc';
 
@@ -56,6 +57,10 @@ export interface ProjectMeta {
   rootNote: RootNote;
   scale: ScaleMode;
   chordProgression?: number[];
+  chordQualities?: ChordQuality[];
+  chordProgressionMuted?: boolean;
+  chordProgressionVolume?: number;
+  chordLock?: boolean;
   scaleLock: boolean;
   loopEnabled: boolean;
   loopStartBar: number;

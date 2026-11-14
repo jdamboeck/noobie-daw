@@ -1,4 +1,4 @@
-import { RootNote, ScaleMode } from '../types/daw';
+import { ChordQuality, RootNote, ScaleMode } from '../types/daw';
 import { ROOT_NOTE_VALUES, SCALE_INTERVALS } from './scales';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -95,14 +95,78 @@ export function midiToFreq(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-export function getChordForDegree(degree: number, root: RootNote, scale: ScaleMode): { label: string; midiNotes: number[] } {
+export function getChordForDegree(
+  degree: number,
+  root: RootNote,
+  scale: ScaleMode,
+  chordQuality: ChordQuality = 'diatonic'
+): { label: string; midiNotes: number[] } {
   const rootMidi = degreeToMidi(degree, 0, 4, root, scale);
-  const midiNotes = [0, 2, 4].map(offset => degreeToMidi(degree + offset, 0, 4, root, scale));
+  const explicitIntervals: Partial<Record<ChordQuality, number[]>> = {
+    dominant7: [0, 4, 7, 10],
+    major7: [0, 4, 7, 11],
+    minor7: [0, 3, 7, 10]
+  };
+  const midiNotes = explicitIntervals[chordQuality]
+    ? explicitIntervals[chordQuality]!.map(interval => rootMidi + interval)
+    : [0, 2, 4].map(offset => degreeToMidi(degree + offset, 0, 4, root, scale));
   const intervals = midiNotes.map(note => note - rootMidi);
-  const quality = intervals[1] === 4 && intervals[2] === 7 ? ''
+  const quality = chordQuality === 'dominant7' ? '7'
+    : chordQuality === 'major7' ? 'maj7'
+      : chordQuality === 'minor7' ? 'm7'
+        : intervals[1] === 4 && intervals[2] === 7 ? ''
     : intervals[1] === 3 && intervals[2] === 7 ? 'm'
       : intervals[1] === 3 && intervals[2] === 6 ? 'dim'
         : intervals[1] === 4 && intervals[2] === 8 ? 'aug'
           : intervals[1] === 4 && intervals[2] === 9 ? '6' : 'sus';
   return { label: `${midiToNoteName(rootMidi).replace(/\d+$/, '')}${quality}`, midiNotes };
+}
+
+export function voiceLeadChord(previous: number[] | undefined, current: number[]): number[] {
+  if (!previous?.length || current.length < 2) return [...current].sort((a, b) => a - b);
+
+  const sorted = [...current].sort((a, b) => a - b);
+  let best = sorted;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (let inversion = 0; inversion < sorted.length; inversion++) {
+    const inverted = [...sorted.slice(inversion), ...sorted.slice(0, inversion).map(note => note + 12)];
+    for (const octaveShift of [-12, 0, 12]) {
+      const candidate = inverted.map(note => note + octaveShift);
+      const distance = candidate.reduce((sum, note, index) => sum + Math.abs(note - previous[Math.min(index, previous.length - 1)]), 0);
+      if (distance < bestDistance) {
+        best = candidate;
+        bestDistance = distance;
+      }
+    }
+  }
+  return best;
+}
+
+export function getVoicedProgression(
+  degrees: number[],
+  qualities: ChordQuality[] | undefined,
+  root: RootNote,
+  scale: ScaleMode
+): number[][] {
+  let previous: number[] | undefined;
+  return degrees.map((degree, index) => {
+    const chord = getChordForDegree(degree, root, scale, qualities?.[index] ?? 'diatonic');
+    previous = voiceLeadChord(previous, chord.midiNotes);
+    return previous;
+  });
+}
+
+export function snapMidiToChord(midi: number, chordNotes: number[]): number {
+  const pitchClasses = new Set(chordNotes.map(note => ((note % 12) + 12) % 12));
+  let nearest = midi;
+  let distance = Number.POSITIVE_INFINITY;
+  for (let candidate = Math.max(0, midi - 12); candidate <= Math.min(127, midi + 12); candidate++) {
+    if (!pitchClasses.has(candidate % 12)) continue;
+    const candidateDistance = Math.abs(candidate - midi);
+    if (candidateDistance < distance) {
+      nearest = candidate;
+      distance = candidateDistance;
+    }
+  }
+  return nearest;
 }

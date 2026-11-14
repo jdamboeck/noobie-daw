@@ -1,4 +1,4 @@
-import { ScaleMode } from '../types/daw';
+import { ChordQuality, ScaleMode } from '../types/daw';
 import { SCALE_INTERVALS } from './scales';
 
 export interface ChordProgressionSeed {
@@ -10,6 +10,7 @@ export interface ChordProgressionSeed {
   mode: 'major' | 'minor';
   numerals: string[];
   degrees: number[];
+  qualities?: ChordQuality[];
 }
 
 export function fitProgressionToScale(degrees: number[], targetScale: ScaleMode, mode: 'major' | 'minor'): number[] {
@@ -92,7 +93,8 @@ export const CHORD_PROGRESSION_SEEDS: ChordProgressionSeed[] = [
     description: 'The classic 12-bar journey: home, away, and back again.',
     mode: 'major',
     numerals: ['I', 'I', 'I', 'I', 'IV', 'IV', 'I', 'I', 'V', 'IV', 'I', 'V'],
-    degrees: [0, 0, 0, 0, 3, 3, 0, 0, 4, 3, 0, 4]
+    degrees: [0, 0, 0, 0, 3, 3, 0, 0, 4, 3, 0, 4],
+    qualities: Array.from({ length: 12 }, () => 'dominant7')
   },
   {
     id: 'jazz-turnaround',
@@ -102,7 +104,8 @@ export const CHORD_PROGRESSION_SEEDS: ChordProgressionSeed[] = [
     description: 'A smooth ii–V–I resolution with one extra step to keep it rolling.',
     mode: 'major',
     numerals: ['ii', 'V', 'I', 'vi'],
-    degrees: [1, 4, 0, 5]
+    degrees: [1, 4, 0, 5],
+    qualities: ['minor7', 'dominant7', 'major7', 'minor7']
   },
   {
     id: 'soul-sway',
@@ -112,6 +115,7 @@ export const CHORD_PROGRESSION_SEEDS: ChordProgressionSeed[] = [
     description: 'A mellow circle of chords with a warm, nostalgic pull.',
     mode: 'major',
     numerals: ['I', 'vi', 'ii', 'V'],
-    degrees: [0, 5, 1, 4]
+    degrees: [0, 5, 1, 4],
+    qualities: ['major7', 'minor7', 'minor7', 'dominant7']
   }
 ];

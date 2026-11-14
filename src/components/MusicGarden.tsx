@@ -134,15 +134,20 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
       props.onMetaChange({
         rootNote: vibe.root,
         scale: vibe.scale,
+        chordQualities: [],
         chordProgression: Array.from({ length: props.meta.totalBars }, (_, bar) => fittedProgression[bar % fittedProgression.length])
       });
     }
   };
 
   const applyChordSeed = (seed: typeof CHORD_PROGRESSION_SEEDS[number]) => {
+    const totalBars = seed.id === 'blues-twelve' ? Math.max(props.meta.totalBars, 12) : props.meta.totalBars;
     props.onMetaChange({
       scale: seed.mode,
-      chordProgression: Array.from({ length: props.meta.totalBars }, (_, bar) => seed.degrees[bar % seed.degrees.length])
+      totalBars,
+      chordProgression: Array.from({ length: totalBars }, (_, bar) => seed.degrees[bar % seed.degrees.length]),
+      chordQualities: Array.from({ length: totalBars }, (_, bar) => seed.qualities?.[bar % seed.degrees.length] ?? 'diatonic'),
+      ...(seed.id === 'blues-twelve' ? { loopEnabled: true, loopStartBar: 1, loopEndBar: 13 } : {})
     });
   };
 
@@ -270,19 +275,25 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <div className="garden-map" style={{ minWidth: `${Math.max(760, props.meta.totalBars * 62)}px` }}>
             <div className="garden-map-labels" aria-hidden="true"><span>Sound beds</span><div className="garden-ruler" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties}>{Array.from({ length: props.meta.totalBars }, (_, index) => <span key={index}>{index === 0 ? 'Start' : index === props.meta.totalBars - 1 ? 'Finish' : index === 4 ? 'A little later' : index === 8 ? 'Halfway' : index === 12 ? 'Nearly there' : ''}</span>)}</div></div>
             <div className="garden-chord-track">
-              <div className="garden-chord-track-label"><span aria-hidden="true">🎼</span><span><strong>Chord garden</strong><small>Choose a chord each bar</small></span></div>
+              <div className="garden-chord-track-label"><span aria-hidden="true">🎼</span><span className="garden-chord-track-copy"><strong>Chord garden</strong><small>Choose a chord each bar</small><span className="garden-chord-track-controls">
+                <button className="garden-mute-button" onClick={() => props.onMetaChange({ chordProgressionMuted: !props.meta.chordProgressionMuted })} aria-label={props.meta.chordProgressionMuted ? 'Play chord garden' : 'Mute chord garden'} aria-pressed={Boolean(props.meta.chordProgressionMuted)}>{props.meta.chordProgressionMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}</button>
+                <label className="garden-chord-volume"><span className="sr-only">Chord garden volume</span><input type="range" min="0" max="1" step="0.05" value={props.meta.chordProgressionVolume ?? 0.65} onChange={event => props.onMetaChange({ chordProgressionVolume: Number(event.target.value) })} /></label>
+                <button className="garden-guide-button" onClick={() => props.onMetaChange({ chordLock: !props.meta.chordLock })} aria-label="Guide melody with chord tones" title="Guide melody with chord tones" aria-pressed={Boolean(props.meta.chordLock)}>Guide</button>
+              </span></span></div>
               <div className="garden-chord-cells" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties}>
                 {chordProgression.map((degree, bar) => {
-                  const chord = getChordForDegree(degree, props.meta.rootNote, props.meta.scale);
+                  const chord = getChordForDegree(degree, props.meta.rootNote, props.meta.scale, props.meta.chordQualities?.[bar]);
                   return <label className={Math.floor(props.playheadPosition) === bar + 1 ? 'is-current' : ''} key={bar}>
                     <span className="sr-only">Chord for bar {bar + 1}</span>
                     <select aria-label={`Chord for bar ${bar + 1}`} value={degree} onChange={event => {
                       const nextProgression = [...chordProgression];
                       nextProgression[bar] = Number(event.target.value);
-                      props.onMetaChange({ chordProgression: nextProgression });
+                      const nextQualities = [...(props.meta.chordQualities ?? [])];
+                      nextQualities[bar] = 'diatonic';
+                      props.onMetaChange({ chordProgression: nextProgression, chordQualities: nextQualities });
                     }}>
                       {Array.from({ length: SCALE_INTERVALS[props.meta.scale].length }, (_, option) => {
-                        const optionChord = getChordForDegree(option, props.meta.rootNote, props.meta.scale);
+                        const optionChord = getChordForDegree(option, props.meta.rootNote, props.meta.scale, props.meta.chordQualities?.[bar]);
                         return <option key={option} value={option}>{optionChord.label}</option>;
                       })}
                     </select>

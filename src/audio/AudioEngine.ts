@@ -1,6 +1,6 @@
 import * as Tone from 'tone';
 import { DrumSound, InstrumentType, MasterEffects, MidiBlock, NoteEvent, ProjectMeta, RootNote, ScaleMode, SoundStyle, Track } from '../types/daw';
-import { degreeToMidi, getChordForDegree, midiToNoteName, snapMidiToScale } from '../music/harmonic';
+import { degreeToMidi, getVoicedProgression, midiToNoteName, snapMidiToChord, snapMidiToScale } from '../music/harmonic';
 import {
   createBassChannel,
   createDrumChannel,
@@ -16,6 +16,8 @@ export class AudioEngine {
   private initializationPromise: Promise<void> | null = null;
   private isPlaying = false;
   private channels: Map<string, InstrumentChannel> = new Map();
+  private harmonyChannel: InstrumentChannel | null = null;
+  private harmonyStyle: SoundStyle | null = null;
 
   // Master Chain Nodes
   private masterInput!: Tone.Gain;
@@ -42,6 +44,8 @@ export class AudioEngine {
   };
   private tracks: Track[] = [];
   private blocks: MidiBlock[] = [];
+  private notesByStep = new Map<number, Array<{ track: Track; note: NoteEvent }>>();
+  private voicedProgression: number[][] = [[60, 64, 67]];
   private masterFx: MasterEffects = {
     volume: 85,
     reverb: 25,
@@ -124,6 +128,25 @@ export class AudioEngine {
     this.projectMeta = { ...meta };
     this.tracks = [...tracks];
     this.blocks = [...blocks];
+    this.voicedProgression = getVoicedProgression(
+      this.projectMeta.chordProgression?.length ? this.projectMeta.chordProgression : [0, 5, 3, 4],
+      this.projectMeta.chordQualities,
+      this.projectMeta.rootNote,
+      this.projectMeta.scale
+    );
+    this.notesByStep.clear();
+    const tracksById = new Map(this.tracks.map(track => [track.id, track]));
+    for (const block of this.blocks) {
+      const track = tracksById.get(block.trackId);
+      if (!track) continue;
+      const blockStartStep = (block.startBar - 1) * 16;
+      for (const note of block.notes) {
+        const absoluteStep = blockStartStep + note.step;
+        const stepNotes = this.notesByStep.get(absoluteStep) ?? [];
+        stepNotes.push({ track, note });
+        this.notesByStep.set(absoluteStep, stepNotes);
+      }
+    }
 
     if (this.isInitialized) {
       if (this.isPlaying) {
@@ -175,6 +198,17 @@ export class AudioEngine {
       channel.setMacro('param1', track.macros.param1);
       channel.setMacro('param2', track.macros.param2);
     }
+
+    const harmonyStyle = this.projectMeta.soundStyle ?? 'pop';
+    if (!this.harmonyChannel || this.harmonyStyle !== harmonyStyle) {
+      this.harmonyChannel?.dispose();
+      this.harmonyChannel = createKeysChannel(this.masterInput, harmonyStyle);
+      this.harmonyStyle = harmonyStyle;
+    }
+    const harmonyVolume = this.projectMeta.chordProgressionVolume ?? 0.65;
+    this.harmonyChannel.volumeNode.volume.value = this.projectMeta.chordProgressionMuted || harmonyVolume <= 0
+      ? -Infinity
+      : Tone.gainToDb(harmonyVolume);
 
     if (this.scheduleId === null) this.setupScheduler();
   }
@@ -241,69 +275,52 @@ export class AudioEngine {
   private playNotesAtStep(step: number, time: number): void {
     const hasSolo = this.tracks.some(t => t.soloed);
     const secondsPer16th = (60 / this.projectMeta.bpm) / 4;
-
-    if (step % 16 === 0) {
-      const chordTrack = this.tracks.find(track => track.instrumentType === 'keys');
-      const chordChannel = chordTrack && !chordTrack.muted && (!hasSolo || chordTrack.soloed)
-        ? this.channels.get(chordTrack.id)
-        : undefined;
-      if (chordChannel) {
-        const bar = Math.floor(step / 16);
-        const progression = this.projectMeta.chordProgression?.length ? this.projectMeta.chordProgression : [0, 5, 3, 4];
-        const chord = getChordForDegree(progression[bar % progression.length], this.projectMeta.rootNote, this.projectMeta.scale);
-        const gateSeconds = secondsPer16th * 16 * 0.92;
-        chord.midiNotes.forEach((midi, index) => chordChannel.triggerNote(midiToNoteName(midi), gateSeconds, time, [84, 72, 68][index]));
-      }
+    if (step % 16 === 0 && !this.projectMeta.chordProgressionMuted && this.harmonyChannel) {
+      const bar = Math.floor(step / 16);
+      const chordNotes = this.voicedProgression[bar % this.voicedProgression.length];
+      const gateSeconds = secondsPer16th * 16 * 0.92;
+      chordNotes.forEach((midi, index) => this.harmonyChannel!.triggerNote(midiToNoteName(midi), gateSeconds, time, [84, 72, 68, 58][index] ?? 58));
     }
 
-    for (const track of this.tracks) {
+    for (const { track, note } of this.notesByStep.get(step) ?? []) {
       if (track.muted) continue;
       if (hasSolo && !track.soloed) continue;
 
       const channel = this.channels.get(track.id);
       if (!channel) continue;
+      const gateSeconds = Math.max(0.04, Math.min(note.durationSteps * secondsPer16th * 0.85, 1.2));
 
-      for (const block of this.blocks) {
-        if (block.trackId !== track.id) continue;
-
-        const blockStartStep = (block.startBar - 1) * 16;
-        const blockEndStep = blockStartStep + block.durationBars * 16;
-
-        if (step >= blockStartStep && step < blockEndStep) {
-          const stepInsideBlock = step - blockStartStep;
-          const notesToPlay = block.notes.filter(n => n.step === stepInsideBlock);
-
-          for (const note of notesToPlay) {
-            const gateSeconds = Math.max(0.04, Math.min(note.durationSteps * secondsPer16th * 0.85, 1.2));
-
-            if (track.instrumentType === 'drums') {
-              if (note.drumSound && channel.triggerDrum) {
-                channel.triggerDrum(note.drumSound, time, note.velocity);
-              }
-            } else {
-              let midiNote: number;
-              const baseOctave = track.instrumentType === 'bass' ? 2 : (track.instrumentType === 'lead' ? 5 : 4);
-
-              if (note.degree !== undefined) {
-                midiNote = degreeToMidi(
-                  note.degree,
-                  note.octaveOffset || 0,
-                  baseOctave,
-                  this.projectMeta.rootNote,
-                  this.projectMeta.scale
-                );
-              } else if (note.midi !== undefined) {
-                midiNote = this.projectMeta.scaleLock
-                  ? snapMidiToScale(note.midi, this.projectMeta.rootNote, this.projectMeta.scale)
-                  : note.midi;
-              } else {
-                continue;
-              }
-
-              channel.triggerNote(midiToNoteName(midiNote), gateSeconds, time, note.velocity);
-            }
-          }
+      if (track.instrumentType === 'drums') {
+        if (note.drumSound && channel.triggerDrum) {
+          channel.triggerDrum(note.drumSound, time, note.velocity);
         }
+      } else {
+        let midiNote: number;
+        const baseOctave = track.instrumentType === 'bass' ? 2 : (track.instrumentType === 'lead' ? 5 : 4);
+
+        if (note.degree !== undefined) {
+          midiNote = degreeToMidi(
+            note.degree,
+            note.octaveOffset || 0,
+            baseOctave,
+            this.projectMeta.rootNote,
+            this.projectMeta.scale
+          );
+          if (track.instrumentType === 'lead' && this.projectMeta.chordLock) {
+            midiNote = snapMidiToChord(midiNote, this.voicedProgression[Math.floor(step / 16) % this.voicedProgression.length]);
+          }
+        } else if (note.midi !== undefined) {
+          midiNote = this.projectMeta.scaleLock
+            ? snapMidiToScale(note.midi, this.projectMeta.rootNote, this.projectMeta.scale)
+            : note.midi;
+          if (track.instrumentType === 'lead' && this.projectMeta.chordLock) {
+            midiNote = snapMidiToChord(midiNote, this.voicedProgression[Math.floor(step / 16) % this.voicedProgression.length]);
+          }
+        } else {
+          continue;
+        }
+
+        channel.triggerNote(midiToNoteName(midiNote), gateSeconds, time, note.velocity);
       }
     }
   }
@@ -409,6 +426,10 @@ export class AudioEngine {
           : note.midi;
       }
       if (midiNote !== undefined) {
+        if (track.instrumentType === 'lead' && this.projectMeta.chordLock) {
+          const bar = Math.floor(note.step / 16) % this.voicedProgression.length;
+          midiNote = snapMidiToChord(midiNote, this.voicedProgression[bar]);
+        }
         const duration = Math.max(0.08, note.durationSteps * secondsPerStep * 0.85);
         channel.triggerNote(midiToNoteName(midiNote), duration, startTime, note.velocity);
       }
@@ -439,6 +460,7 @@ export class AudioEngine {
     for (const channel of this.channels.values()) {
       channel.silenceAll();
     }
+    this.harmonyChannel?.silenceAll();
   }
 
   /**
