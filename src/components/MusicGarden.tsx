@@ -26,6 +26,7 @@ import {
 import { BlockTemplate, SMART_BLOCKS_TEMPLATES } from '../music/blocksLibrary';
 import { SCALE_INTERVALS, VIBE_PRESETS, VIBE_PROGRESSIONS } from '../music/scales';
 import { getChordForDegree } from '../music/harmonic';
+import { CHORD_PROGRESSION_SEEDS, fitProgressionToScale } from '../music/chordProgressions';
 import { SOUND_STYLE_PRESETS } from '../music/soundStyles';
 import { MasterEffects, MidiBlock, NoteEvent, ProjectMeta, SoundStyle, Track, UserPresence } from '../types/daw';
 import { MidiDeviceInfo } from '../types/midi';
@@ -107,7 +108,9 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
 
   const activeTrack = props.tracks.find(track => track.id === props.activeTrackId) || props.tracks[0];
   const connectedMidi = props.midiDevices.filter(device => device.state === 'connected');
-  const selectedVibe = VIBE_PRESETS.find(vibe => vibe.root === props.meta.rootNote && vibe.scale === props.meta.scale) || VIBE_PRESETS[0];
+  const selectedVibe = VIBE_PRESETS.find(vibe => vibe.root === props.meta.rootNote && vibe.scale === props.meta.scale)
+    || VIBE_PRESETS.find(vibe => vibe.scale === props.meta.scale)
+    || VIBE_PRESETS[0];
   const progressionTemplate = VIBE_PROGRESSIONS[selectedVibe.id];
   const chordProgression = Array.from({ length: props.meta.totalBars }, (_, bar) =>
     props.meta.chordProgression?.[bar] ?? progressionTemplate[bar % progressionTemplate.length]
@@ -116,6 +119,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
     () => SMART_BLOCKS_TEMPLATES.filter(template => template.instrumentType === seedType),
     [seedType]
   );
+  const progressionSeeds = CHORD_PROGRESSION_SEEDS;
 
   useEffect(() => {
     window.localStorage.setItem('sound-garden-theme', isDark ? 'dark' : 'light');
@@ -125,12 +129,21 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
     const vibe = VIBE_PRESETS.find(item => item.id === vibeId);
     if (vibe) {
       const progression = VIBE_PROGRESSIONS[vibe.id];
+      const mode = vibe.scale === 'minor' || vibe.scale === 'pentatonic_minor' ? 'minor' : 'major';
+      const fittedProgression = fitProgressionToScale(progression, vibe.scale, mode);
       props.onMetaChange({
         rootNote: vibe.root,
         scale: vibe.scale,
-        chordProgression: Array.from({ length: props.meta.totalBars }, (_, bar) => progression[bar % progression.length])
+        chordProgression: Array.from({ length: props.meta.totalBars }, (_, bar) => fittedProgression[bar % fittedProgression.length])
       });
     }
+  };
+
+  const applyChordSeed = (seed: typeof CHORD_PROGRESSION_SEEDS[number]) => {
+    props.onMetaChange({
+      scale: seed.mode,
+      chordProgression: Array.from({ length: props.meta.totalBars }, (_, bar) => seed.degrees[bar % seed.degrees.length])
+    });
   };
 
   return (
@@ -322,6 +335,21 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
             {SOUNDS.map(sound => <button key={sound.type} className={`garden-filter ${sound.color} ${seedType === sound.type ? 'is-selected' : ''}`} onClick={() => setSeedType(sound.type)} aria-pressed={seedType === sound.type}><span>{sound.emoji}</span>{sound.label}</button>)}
           </div>
           <button className="garden-blank-button" onClick={() => { props.onPlantBlank(seedType); setShowEditor(true); }}><span className="garden-blank-emoji" aria-hidden="true">🪴</span><span className="garden-blank-copy"><strong>Start with a blank pattern</strong><small>Make every note yourself</small></span><Plus size={19} aria-hidden="true" /></button>
+          <div className="garden-progression-shelf">
+            <div className="garden-seed-heading"><div><span className="garden-kicker">CHORD SEEDS</span><h3>Pick a chord journey</h3></div><p>Familiar shapes from pop, hip-hop, rock, blues, jazz and soul.</p></div>
+            <div className="garden-progression-cards">
+              {progressionSeeds.map(seed => <article className="garden-progression-card" key={seed.id}>
+                <div className="garden-progression-card-title"><span aria-hidden="true">{seed.emoji}</span><div><strong>{seed.name}</strong><small>{seed.style} · {seed.mode} key</small></div></div>
+                <p>{seed.description}</p>
+                <div className="garden-progression-formula" aria-label={`Chord formula: ${seed.numerals.join(', ')}`}>{seed.numerals.map((numeral, index) => <span key={`${seed.id}-${index}`}>{numeral}</span>)}</div>
+                <div className="garden-progression-example" aria-label={`In ${props.meta.rootNote} ${seed.mode}: ${seed.degrees.slice(0, 4).map(degree => getChordForDegree(degree, props.meta.rootNote, seed.mode).label).join(', ')}`}>
+                  {seed.degrees.slice(0, 4).map((degree, index) => <span key={`${seed.id}-chord-${index}`}>{getChordForDegree(degree, props.meta.rootNote, seed.mode).label}</span>)}
+                  {seed.degrees.length > 4 && <span>…</span>}
+                </div>
+                <button className="garden-progression-apply" onClick={() => applyChordSeed(seed)}><Plus size={15} aria-hidden="true" /> Use journey &amp; key</button>
+              </article>)}
+            </div>
+          </div>
           <div className="garden-seed-cards">
             {seedTemplates.map(template => <article className={`garden-seed-card ${soundFor({ instrumentType: template.instrumentType } as Track).color}`} key={template.name}>
               <div className="garden-seed-card-emoji" aria-hidden="true">{template.emoji}</div>
