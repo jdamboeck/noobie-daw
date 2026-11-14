@@ -369,6 +369,18 @@ export function App() {
     setActiveTrackId(targetTrack.id);
   };
 
+  const handleAddBlankBlock = (instrumentType: InstrumentType) => {
+    handleAddBlockFromTemplate({
+      name: 'My pattern',
+      emoji: '🪴',
+      category: 'Made by you',
+      instrumentType,
+      durationBars: 2,
+      description: 'A little patch of music, ready for your ideas.',
+      notes: []
+    });
+  };
+
   const handleMoveBlock = (blockId: string, newTrackId: string, newStartBar: number) => {
     collabManager.updateBlock(blockId, { startBar: newStartBar, trackId: newTrackId });
   };
@@ -450,6 +462,7 @@ export function App() {
         onSeek={handleSeek}
         onAddTrack={handleAddTrack}
         onPlantSeed={handleAddBlockFromTemplate}
+        onPlantBlank={handleAddBlankBlock}
         onPreviewSeed={(template) => {
           const previewTrack = tracks.find(track => track.instrumentType === template.instrumentType) || tracks[0];
           void audioEngine.previewPattern(previewTrack.id, template.notes);

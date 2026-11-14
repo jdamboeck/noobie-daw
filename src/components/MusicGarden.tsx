@@ -8,6 +8,7 @@ import {
   Keyboard,
   Moon,
   Pause,
+  Pencil,
   Play,
   Plus,
   Radio,
@@ -52,6 +53,7 @@ interface MusicGardenProps {
   onSeek: (bar: number) => void;
   onAddTrack: (type: Track['instrumentType']) => void;
   onPlantSeed: (template: BlockTemplate) => void;
+  onPlantBlank: (type: Track['instrumentType']) => void;
   onPreviewSeed: (template: BlockTemplate) => void;
   onRemoveBlock: (id: string) => void;
   onMoveBlock: (id: string, trackId: string, startBar: number) => void;
@@ -247,6 +249,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
                   {trackBlocks.map(block => <div className={`garden-planted-seed ${props.selectedBlock?.id === block.id ? 'is-selected' : ''}`} key={block.id} style={{ left: `${((block.startBar - 1) / props.meta.totalBars) * 100}%`, width: `${Math.max(6, (block.durationBars / props.meta.totalBars) * 100)}%` }}>
                     <button className="garden-seed-chip" onClick={() => { props.onSelectTrack(track.id); props.onSelectBlock(block.id); }} aria-label={`Select ${block.emoji || sound.emoji} ${block.name}`}><span>{block.emoji || sound.emoji}</span><strong>{block.name}</strong></button>
                     <div className="garden-seed-tools">
+                      <button onClick={() => { props.onSelectTrack(track.id); props.onSelectBlock(block.id); setShowEditor(true); }} aria-label={`Edit notes in ${block.name}`}><Pencil size={13} /></button>
                       <button onClick={() => props.onMoveBlock(block.id, track.id, Math.max(1, block.startBar - 1))} aria-label={`Move ${block.name} earlier`}><ArrowLeft size={13} /></button>
                       <button onClick={() => props.onMoveBlock(block.id, track.id, Math.min(props.meta.totalBars - block.durationBars + 1, block.startBar + 1))} aria-label={`Move ${block.name} later`}><ArrowRight size={13} /></button>
                       <button onClick={() => props.onRemoveBlock(block.id)} aria-label={`Remove ${block.name}`}><X size={13} /></button>
@@ -263,6 +266,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <div className="garden-seed-filters" role="group" aria-label="Sound seed types">
             {SOUNDS.map(sound => <button key={sound.type} className={`garden-filter ${sound.color} ${seedType === sound.type ? 'is-selected' : ''}`} onClick={() => setSeedType(sound.type)} aria-pressed={seedType === sound.type}><span>{sound.emoji}</span>{sound.label}</button>)}
           </div>
+          <button className="garden-blank-button" onClick={() => { props.onPlantBlank(seedType); setShowEditor(true); }}><span className="garden-blank-emoji" aria-hidden="true">🪴</span><span className="garden-blank-copy"><strong>Start with a blank pattern</strong><small>Make every note yourself</small></span><Plus size={19} aria-hidden="true" /></button>
           <div className="garden-seed-cards">
             {seedTemplates.slice(0, 6).map(template => <article className={`garden-seed-card ${soundFor({ instrumentType: template.instrumentType } as Track).color}`} key={template.name}>
               <div className="garden-seed-card-emoji" aria-hidden="true">{template.emoji}</div>

@@ -368,7 +368,7 @@ export class AudioEngine {
     if (!track || !channel) return;
 
     const secondsPerStep = 60 / this.projectMeta.bpm / 4;
-    const previewStart = Tone.now() + 0.08;
+    const previewStart = Tone.now();
     const baseOctave = track.instrumentType === 'bass' ? 2 : (track.instrumentType === 'lead' ? 5 : 4);
 
     [...notes].sort((left, right) => left.step - right.step).forEach(note => {
