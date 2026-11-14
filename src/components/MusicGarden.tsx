@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Check,
   Download,
+  FilePlus2,
   Headphones,
   Keyboard,
   Moon,
@@ -46,6 +47,7 @@ interface MusicGardenProps {
   showKeyboard: boolean;
   onPlayToggle: () => void;
   onStop: () => void;
+  onStartFresh: () => void;
   onMetaChange: (update: Partial<ProjectMeta>) => void;
   onFxChange: (update: Partial<MasterEffects>) => void;
   onSelectTrack: (id: string) => void;
@@ -96,6 +98,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showAddSound, setShowAddSound] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showFreshConfirm, setShowFreshConfirm] = useState(false);
   const [isDark, setIsDark] = useState(() => window.localStorage.getItem('sound-garden-theme') === 'dark');
 
   const activeTrack = props.tracks.find(track => track.id === props.activeTrackId) || props.tracks[0];
@@ -211,6 +214,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
         <div className="garden-section-heading">
           <div><span className="garden-kicker">YOUR MUSICAL BACKYARD</span><h2>Sound garden <span aria-hidden="true">🌿</span></h2></div>
           <div className="garden-heading-actions">
+            <button className="garden-outline-button garden-new-button" onClick={() => setShowFreshConfirm(true)}><FilePlus2 size={18} /> Start fresh</button>
             <button className="garden-outline-button" onClick={() => setShowAddSound(!showAddSound)} aria-expanded={showAddSound}><Plus size={18} /> Add a sound</button>
             <button className="garden-primary-button" onClick={props.onExport} disabled={props.isExporting}><Download size={18} /> {props.isExporting ? 'Saving…' : 'Save my song'}</button>
           </div>
@@ -284,7 +288,9 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
 
       {props.showKeyboard && activeTrack && <div className="garden-keyboard-dock"><div className="garden-keyboard-caption"><span>{activeTrack.emoji} You’re playing {friendlyTrackName(activeTrack, 0)}</span><button onClick={props.onToggleKeyboard} aria-label="Close play keys"><X size={18} /></button></div><VirtualKeyboard activeTrack={activeTrack} meta={props.meta} onAuditionNote={props.onAuditionNote} onAuditionDrum={props.onAuditionDrum} onClose={props.onToggleKeyboard} /></div>}
 
-      {showEditor && activeTrack && <div className="garden-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowEditor(false); }}><section className="garden-editor-modal" role="dialog" aria-modal="true" aria-labelledby="garden-editor-title"><div className="garden-editor-heading"><div><span className="garden-kicker">TINKER TIME</span><h2 id="garden-editor-title">Make this sound your own</h2></div><button className="garden-icon-button" onClick={() => setShowEditor(false)} aria-label="Close sound editor"><X size={20} /></button></div><Inspector activeTrack={activeTrack} selectedBlock={props.selectedBlock} meta={props.meta} onUpdateTrackMacros={props.onUpdateTrackMacros} onUpdateBlockNotes={props.onUpdateBlockNotes} onCloseBlock={() => setShowEditor(false)} onAuditionNote={props.onAuditionNote} onAuditionDrum={props.onAuditionDrum} /></section></div>}
+      {showFreshConfirm && <div className="garden-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowFreshConfirm(false); }}><section className="garden-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="garden-confirm-title" aria-describedby="garden-confirm-copy"><span className="garden-confirm-emoji" aria-hidden="true">🌱</span><h2 id="garden-confirm-title">Make room for a new song?</h2><p id="garden-confirm-copy">This clears the blocks from this shared timeline. Your sounds, tempo, and settings will stay.</p><div><button className="garden-outline-button" onClick={() => setShowFreshConfirm(false)}>Keep this song</button><button className="garden-primary-button" onClick={() => { props.onStartFresh(); setShowFreshConfirm(false); }}>Start with an empty timeline</button></div></section></div>}
+
+      {showEditor && activeTrack && <div className="garden-modal-backdrop garden-editor-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowEditor(false); }}><section className="garden-editor-modal" role="dialog" aria-modal="true" aria-labelledby="garden-editor-title"><div className="garden-editor-heading"><div><span className="garden-kicker">TINKER TIME</span><h2 id="garden-editor-title">Make this sound your own</h2></div><button className="garden-icon-button" onClick={() => setShowEditor(false)} aria-label="Close sound editor"><X size={20} /></button></div><Inspector activeTrack={activeTrack} selectedBlock={props.selectedBlock} meta={props.meta} onUpdateTrackMacros={props.onUpdateTrackMacros} onUpdateBlockNotes={props.onUpdateBlockNotes} onCloseBlock={() => setShowEditor(false)} onAuditionNote={props.onAuditionNote} onAuditionDrum={props.onAuditionDrum} /></section></div>}
     </main>
   );
 };

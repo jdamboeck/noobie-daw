@@ -168,3 +168,23 @@
 @media (prefers-reduced-motion: reduce) {
   .garden-shell *, .garden-shell *::before, .garden-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.garden-editor-backdrop { padding: 3vh 2vw; }
+.garden-editor-modal { width: min(96vw, 1500px); max-height: 94dvh; display: flex; flex-direction: column; overflow: hidden; }
+.garden-editor-modal .garden-editor-heading { flex: 0 0 auto; }
+.garden-editor-modal .garden-inspector { height: min(72vh, 680px); min-height: 320px; flex: 1 1 auto; min-width: 0; }
+.garden-editor-modal .garden-inspector > div:last-child { min-width: 0; }
+.garden-confirm-card { width: min(100%, 480px); padding: 28px; border: 1px solid #e9e6da; border-radius: 24px; background: #fcfbf5; text-align: center; box-shadow: 0 25px 90px #18251e40; }
+.garden-confirm-emoji { display: block; margin-bottom: 10px; font-size: 38px; }
+.garden-confirm-card h2 { margin: 0; font-size: 23px; letter-spacing: -.04em; }
+.garden-confirm-card p { margin: 10px 0 22px; color: #687773; line-height: 1.5; }
+.garden-confirm-card > div { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; }
+.garden-shell.is-dark .garden-confirm-card { border-color: #3b493f; background: #202b25; }
+.garden-shell.is-dark .garden-confirm-card p { color: #b2bdb4; }
+@media (max-width: 600px) {
+  .garden-editor-backdrop { padding: 8px; }
+  .garden-editor-modal { width: 100%; max-height: 96dvh; padding: 10px; }
+  .garden-editor-modal .garden-inspector { height: min(78dvh, 640px); min-height: 280px; }
+  .garden-confirm-card { padding: 21px 16px; }
+  .garden-confirm-card > div { flex-direction: column-reverse; }
+}

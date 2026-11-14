@@ -240,6 +240,12 @@ export class CollaborationManager {
     });
   }
 
+  public clearBlocks(): void {
+    this.doc.transact(() => {
+      this.yBlocks.clear();
+    });
+  }
+
   public getTracks(): Track[] {
     return Array.from(this.yTracks.values(), record => this.readRecord<Track>(record));
   }

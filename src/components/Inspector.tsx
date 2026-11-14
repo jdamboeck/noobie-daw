@@ -101,7 +101,7 @@ export const Inspector: React.FC<InspectorProps> = ({
   const degreesToRender = [7, 6, 5, 4, 3, 2, 1, 0];
 
   return (
-    <div className="h-56 bg-[#161a24] border-t border-white/10 flex text-xs select-none shadow-2xl">
+    <div className="garden-inspector bg-[#161a24] border-t border-white/10 flex text-xs select-none shadow-2xl">
       {/* Left: Playful Sound Knobs */}
       <div className="w-64 p-3.5 bg-[#131720] border-r border-white/10 flex flex-col justify-between">
         <div>

@@ -67,14 +67,21 @@ const DEFAULT_TRACKS: Track[] = [
   }
 ];
 
-// Starter Pre-Populated Blocks with crisp, musical durations
+// Moon Garden Arcade: a quiet opening that grows into a playful finale.
 const DEFAULT_BLOCKS: MidiBlock[] = [
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[0], 'trk-drums', 1, '#f43f5e'),  // 🪩 Dance Party Bars 1-2
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[0], 'trk-drums', 3, '#f43f5e'),  // 🪩 Dance Party Bars 3-4
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[6], 'trk-bass', 1, '#10b981'),   // 🤖 Robot Walker Bars 1-2
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[6], 'trk-bass', 3, '#10b981'),   // 🤖 Robot Walker Bars 3-4
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[12], 'trk-keys', 1, '#f59e0b'),  // 🎬 Movie Ballad Bars 1-4
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[15], 'trk-lead', 3, '#06b6d4'),  // 🍄 Super Jump Melody Bars 3-4
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[3], 'trk-drums', 1, '#f43f5e'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[0], 'trk-drums', 3, '#f43f5e'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[4], 'trk-drums', 5, '#f43f5e'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[5], 'trk-drums', 7, '#f43f5e'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[8], 'trk-bass', 1, '#10b981'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[6], 'trk-bass', 3, '#10b981'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[7], 'trk-bass', 5, '#10b981'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[9], 'trk-bass', 7, '#10b981'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[14], 'trk-keys', 1, '#f59e0b'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[13], 'trk-keys', 5, '#f59e0b'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[16], 'trk-lead', 3, '#06b6d4'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[17], 'trk-lead', 5, '#06b6d4'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[15], 'trk-lead', 7, '#06b6d4'),
 ].map((block, blockIndex) => ({
   ...block,
   id: `default-block-${blockIndex}`,
@@ -85,14 +92,14 @@ export function App() {
   // Session State
   const [meta, setMeta] = useState<ProjectMeta>({
     id: 'jam-project',
-    title: 'Collaborative Beat',
-    bpm: 116,
+    title: 'Moon Garden Arcade',
+    bpm: 112,
     rootNote: 'C',
     scale: 'minor',
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,
-    loopEndBar: 5,
+    loopEndBar: 9,
     totalBars: 16
   });
 
@@ -307,6 +314,12 @@ export function App() {
     collabManager.broadcastTransport('stop', startBar);
   };
 
+  const handleStartFresh = () => {
+    handleStop();
+    collabManager.clearBlocks();
+    setSelectedBlockId(null);
+  };
+
   const handleSeek = (bar: number) => {
     audioEngine.seekToBar(bar);
     setPlayheadPosition(bar);
@@ -455,6 +468,7 @@ export function App() {
         pendingRemotePlay={Boolean(pendingRemotePlay)}
         onPlayToggle={handlePlayToggle}
         onStop={handleStop}
+        onStartFresh={handleStartFresh}
         onMetaChange={(update) => collabManager.updateMeta(update)}
         onFxChange={(update) => collabManager.updateMasterEffects(update)}
         onSelectTrack={setActiveTrackId}
