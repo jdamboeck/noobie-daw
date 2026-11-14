@@ -7,5 +7,16 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('/node_modules/tone/') || id.includes('/node_modules/standardized-audio-context/')) return 'audio-vendor';
+          if (id.includes('/node_modules/yjs/') || id.includes('/node_modules/y-webrtc/') || id.includes('/node_modules/y-protocols/') || id.includes('/node_modules/lib0/')) return 'collaboration-vendor';
+          if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) return 'react-vendor';
+        }
+      }
+    }
   }
 });

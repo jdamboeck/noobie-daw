@@ -274,10 +274,15 @@ export function App() {
     });
 
     // 3. Setup AudioEngine Playhead Callback
+    let lastPresenceBar = -1;
     audioEngine.setPlayheadTickCallback((bar) => {
       setPlayheadPosition(bar);
       if (!audioEngine.getIsPlaying()) setIsPlaying(false);
-      collabManager.updateLocalPresence({ cursorBar: bar });
+      const cursorBar = Math.floor(bar);
+      if (cursorBar !== lastPresenceBar) {
+        lastPresenceBar = cursorBar;
+        collabManager.updateLocalPresence({ cursorBar });
+      }
     });
 
     // 4. Try automatic silent MIDI connection (works immediately if enabled in Firefox or allowed in Chrome)
