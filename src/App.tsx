@@ -7,15 +7,9 @@ import { MidiManager } from './midi/MidiManager';
 import { CollaborationManager, TransportSyncMessage } from './multiplayer/CollaborationManager';
 import { BlockTemplate, createBlockFromTemplate, SMART_BLOCKS_TEMPLATES } from './music/blocksLibrary';
 
-import { Header } from './components/Header';
-import { Toolbar } from './components/Toolbar';
-import { Arranger } from './components/Arranger';
-import { BlockLibrary } from './components/BlockLibrary';
-import { Inspector } from './components/Inspector';
-import { VirtualKeyboard } from './components/VirtualKeyboard';
+import { MusicGarden } from './components/MusicGarden';
 import { MidiModal } from './components/MidiModal';
 import { ShareModal } from './components/ShareModal';
-import { OnboardingTour } from './components/OnboardingTour';
 
 // Starter Template Tracks & Blocks with Fun Emojis
 const DEFAULT_TRACKS: Track[] = [
@@ -121,10 +115,9 @@ export function App() {
   const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
-  // Modals & Tour
+  // Modals
   const [isMidiModalOpen, setIsMidiModalOpen] = useState<boolean>(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(true);
 
   // Hardware & Peers
   const [midiDevices, setMidiDevices] = useState<MidiDeviceInfo[]>([]);
@@ -360,17 +353,20 @@ export function App() {
   };
 
   const handleAddBlockFromTemplate = (template: BlockTemplate) => {
-    const activeTrack = tracks.find(t => t.id === activeTrackId) || tracks[0];
-    const trackBlocks = blocks.filter(b => b.trackId === activeTrack.id);
+    const targetTrack = tracks.find(track => track.instrumentType === template.instrumentType)
+      || tracks.find(track => track.id === activeTrackId)
+      || tracks[0];
+    const trackBlocks = blocks.filter(b => b.trackId === targetTrack.id);
     let targetBar = 1;
     if (trackBlocks.length > 0) {
       const lastBlock = trackBlocks.reduce((max, b) => (b.startBar + b.durationBars > max ? b.startBar + b.durationBars : max), 1);
       targetBar = lastBlock;
     }
 
-    const newBlock = createBlockFromTemplate(template, activeTrack.id, targetBar, activeTrack.color);
+    const newBlock = createBlockFromTemplate(template, targetTrack.id, targetBar, targetTrack.color);
     collabManager.addBlock(newBlock);
     setSelectedBlockId(newBlock.id);
+    setActiveTrackId(targetTrack.id);
   };
 
   const handleMoveBlock = (blockId: string, newTrackId: string, newStartBar: number) => {
@@ -396,6 +392,16 @@ export function App() {
     }
   };
 
+  const handleRemoveTrack = (trackId: string) => {
+    collabManager.removeTrack(trackId);
+    if (activeTrackId === trackId) {
+      setActiveTrackId(tracks.find(track => track.id !== trackId)?.id || '');
+    }
+    if (blocks.some(block => block.trackId === trackId && block.id === selectedBlockId)) {
+      setSelectedBlockId(null);
+    }
+  };
+
   // Export to WAV Handler
   const handleExport = async () => {
     setIsExporting(true);
@@ -417,105 +423,52 @@ export function App() {
     }
   };
 
-  const activeTrack = tracks.find(t => t.id === activeTrackId) || tracks[0];
   const selectedBlock = blocks.find(b => b.id === selectedBlockId) || null;
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-studio-900 overflow-hidden font-sans">
-      {/* Top Header */}
-      <Header
+    <>
+      <MusicGarden
         meta={meta}
+        tracks={tracks}
+        blocks={blocks}
+        masterFx={masterFx}
+        activeTrackId={activeTrackId}
+        selectedBlock={selectedBlock}
+        playheadPosition={playheadPosition}
         isPlaying={isPlaying}
         peers={peers}
         midiDevices={midiDevices}
+        isExporting={isExporting}
+        showKeyboard={showKeyboard}
+        pendingRemotePlay={Boolean(pendingRemotePlay)}
         onPlayToggle={handlePlayToggle}
         onStop={handleStop}
         onMetaChange={(update) => collabManager.updateMeta(update)}
-        onOpenMidiModal={() => setIsMidiModalOpen(true)}
-        onOpenShareModal={() => setIsShareModalOpen(true)}
-        onExport={handleExport}
-        isExporting={isExporting}
-      />
-
-      {/* Toolbar */}
-      <Toolbar
-        meta={meta}
-        masterFx={masterFx}
-        showKeyboard={showKeyboard}
-        onToggleKeyboard={() => setShowKeyboard(!showKeyboard)}
-        onAddTrack={handleAddTrack}
-        onMetaChange={(update) => collabManager.updateMeta(update)}
         onFxChange={(update) => collabManager.updateMasterEffects(update)}
-      />
-
-      {pendingRemotePlay && (
-        <div className="bg-indigo-950/80 border-b border-indigo-400/30 px-4 py-2 text-center text-xs text-indigo-100">
-          A collaborator started playback. Click Play to enable audio and join at bar {Math.floor(pendingRemotePlay.bar)}.
-        </div>
-      )}
-
-      {/* Main Studio Viewport (Block Palette + Arranger) */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Smart Block Library */}
-        <BlockLibrary
-          activeTrack={activeTrack}
-          onAddBlockFromTemplate={handleAddBlockFromTemplate}
-          onPreviewTemplate={(template) => {
-            if (activeTrack.instrumentType === 'drums') {
-              audioEngine.auditionDrum(activeTrack.id, 'kick', 110);
-              setTimeout(() => audioEngine.auditionDrum(activeTrack.id, 'snare', 110), 200);
-            } else {
-              audioEngine.auditionNote(activeTrack.id, 60, 100);
-              setTimeout(() => audioEngine.auditionNote(activeTrack.id, 64, 100), 180);
-              setTimeout(() => audioEngine.auditionNote(activeTrack.id, 67, 100), 360);
-            }
-          }}
-        />
-
-        {/* Center/Right Arranger Timeline */}
-        <Arranger
-          meta={meta}
-          tracks={tracks}
-          blocks={blocks}
-          activeTrackId={activeTrackId}
-          selectedBlockId={selectedBlockId}
-          playheadPosition={playheadPosition}
-          peers={peers}
-          onSelectTrack={(id) => setActiveTrackId(id)}
-          onSelectBlock={(id) => setSelectedBlockId(id)}
-          onUpdateTrack={(id, update) => collabManager.updateTrack(id, update)}
-          onRemoveTrack={(id) => collabManager.removeTrack(id)}
-          onMoveBlock={handleMoveBlock}
-          onDuplicateBlock={handleDuplicateBlock}
-          onRemoveBlock={handleRemoveBlock}
-          onSeek={handleSeek}
-        />
-      </div>
-
-      {/* Bottom Inspector (Macros + Step Sequencer / Piano Roll) */}
-      <Inspector
-        activeTrack={activeTrack}
-        selectedBlock={selectedBlock}
-        meta={meta}
-        onUpdateTrackMacros={(macros) => collabManager.updateTrack(activeTrack.id, { macros })}
+        onSelectTrack={setActiveTrackId}
+        onSelectBlock={setSelectedBlockId}
+        onSeek={handleSeek}
+        onAddTrack={handleAddTrack}
+        onPlantSeed={handleAddBlockFromTemplate}
+        onPreviewSeed={(template) => {
+          const previewTrack = tracks.find(track => track.instrumentType === template.instrumentType) || tracks[0];
+          void audioEngine.previewPattern(previewTrack.id, template.notes);
+        }}
+        onRemoveBlock={handleRemoveBlock}
+        onMoveBlock={handleMoveBlock}
+        onToggleMute={(track) => collabManager.updateTrack(track.id, { muted: !track.muted })}
+        onRemoveTrack={handleRemoveTrack}
+        onVolumeChange={(trackId, volume) => collabManager.updateTrack(trackId, { volume })}
+        onOpenMidi={() => setIsMidiModalOpen(true)}
+        onOpenShare={() => setIsShareModalOpen(true)}
+        onExport={handleExport}
+        onToggleKeyboard={() => setShowKeyboard(!showKeyboard)}
+        onUpdateTrackMacros={(macros) => collabManager.updateTrack(activeTrackId, { macros })}
         onUpdateBlockNotes={(blockId, notes) => collabManager.updateBlock(blockId, { notes })}
-        onCloseBlock={() => setSelectedBlockId(null)}
-        onAuditionNote={(midi) => audioEngine.auditionNote(activeTrack.id, midi)}
-        onAuditionDrum={(sound) => audioEngine.auditionDrum(activeTrack.id, sound)}
+        onAuditionNote={(midi) => audioEngine.auditionNote(activeTrackId, midi)}
+        onAuditionDrum={(sound) => audioEngine.auditionDrum(activeTrackId, sound)}
       />
 
-      {/* Optional Dockable Virtual Keyboard / MPC Pads */}
-      {showKeyboard && (
-        <VirtualKeyboard
-          activeTrack={activeTrack}
-          meta={meta}
-          onAuditionNote={(midi) => audioEngine.auditionNote(activeTrack.id, midi)}
-          onAuditionDrum={(sound) => audioEngine.auditionDrum(activeTrack.id, sound)}
-          onClose={() => setShowKeyboard(false)}
-        />
-      )}
-
-      {/* Modals & Onboarding Tour */}
       <MidiModal
         devices={midiDevices}
         isOpen={isMidiModalOpen}
@@ -530,11 +483,7 @@ export function App() {
         onClose={() => setIsShareModalOpen(false)}
       />
 
-      <OnboardingTour
-        isOpen={isOnboardingOpen}
-        onDismiss={() => setIsOnboardingOpen(false)}
-      />
-    </div>
+    </>
   );
 }
 

@@ -361,6 +361,40 @@ export class AudioEngine {
     }
   }
 
+  public async previewPattern(trackId: string, notes: Array<Omit<NoteEvent, 'id'>>): Promise<void> {
+    await this.init();
+    const track = this.tracks.find(item => item.id === trackId);
+    const channel = this.channels.get(trackId);
+    if (!track || !channel) return;
+
+    const secondsPerStep = 60 / this.projectMeta.bpm / 4;
+    const previewStart = Tone.now() + 0.08;
+    const baseOctave = track.instrumentType === 'bass' ? 2 : (track.instrumentType === 'lead' ? 5 : 4);
+
+    [...notes].sort((left, right) => left.step - right.step).forEach(note => {
+      const startTime = previewStart + note.step * secondsPerStep;
+      if (track.instrumentType === 'drums') {
+        if (note.drumSound && channel.triggerDrum) {
+          channel.triggerDrum(note.drumSound, startTime, note.velocity);
+        }
+        return;
+      }
+
+      let midiNote: number | undefined;
+      if (note.degree !== undefined) {
+        midiNote = degreeToMidi(note.degree, note.octaveOffset || 0, baseOctave, this.projectMeta.rootNote, this.projectMeta.scale);
+      } else if (note.midi !== undefined) {
+        midiNote = this.projectMeta.scaleLock
+          ? snapMidiToScale(note.midi, this.projectMeta.rootNote, this.projectMeta.scale)
+          : note.midi;
+      }
+      if (midiNote !== undefined) {
+        const duration = Math.max(0.08, note.durationSteps * secondsPerStep * 0.85);
+        channel.triggerNote(midiToNoteName(midiNote), duration, startTime, note.velocity);
+      }
+    });
+  }
+
   public updateMasterEffects(fx: MasterEffects): void {
     this.masterFx = { ...fx };
     if (this.isInitialized) this.applyMasterEffects();
