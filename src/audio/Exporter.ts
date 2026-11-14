@@ -135,7 +135,14 @@ export async function exportSongToWav(
       channels.set(track.id, channel);
     }
 
-    // Schedule all notes in all blocks
+    const scheduledNotes: Array<{
+      channel: InstrumentChannel;
+      track: Track;
+      note: MidiBlock['notes'][number];
+      startTime: number;
+      gateSeconds: number;
+    }> = [];
+
     for (const block of blocks) {
       const track = tracks.find(t => t.id === block.trackId);
       if (!track || track.muted || (hasSolo && !track.soloed)) continue;
@@ -146,35 +153,44 @@ export async function exportSongToWav(
       const secondsPer16th = secondsPerBeat / 4;
 
       for (const note of block.notes) {
-        const noteStartSeconds = blockStartSeconds + note.step * secondsPer16th;
-        const gateSeconds = Math.max(0.04, Math.min(note.durationSteps * secondsPer16th * 0.85, 1.8));
+        scheduledNotes.push({
+          channel,
+          track,
+          note,
+          startTime: blockStartSeconds + note.step * secondsPer16th,
+          gateSeconds: Math.max(0.04, Math.min(note.durationSteps * secondsPer16th * 0.85, 1.8))
+        });
+      }
+    }
 
-        if (track.instrumentType === 'drums') {
-          if (note.drumSound && channel.triggerDrum) {
-            channel.triggerDrum(note.drumSound, noteStartSeconds, note.velocity);
-          }
-        } else {
-          let midiNote: number;
-          const baseOctave = track.instrumentType === 'bass' ? 2 : (track.instrumentType === 'lead' ? 5 : 4);
+    scheduledNotes.sort((left, right) => left.startTime - right.startTime);
 
-          if (note.degree !== undefined) {
-            midiNote = degreeToMidi(
-              note.degree,
-              note.octaveOffset || 0,
-              baseOctave,
-              meta.rootNote,
-              meta.scale
-            );
-          } else if (note.midi !== undefined) {
-            midiNote = meta.scaleLock
-              ? snapMidiToScale(note.midi, meta.rootNote, meta.scale)
-              : note.midi;
-          } else {
-            continue;
-          }
-
-          channel.triggerNote(midiToNoteName(midiNote), gateSeconds, noteStartSeconds, note.velocity);
+    for (const { channel, track, note, startTime, gateSeconds } of scheduledNotes) {
+      if (track.instrumentType === 'drums') {
+        if (note.drumSound && channel.triggerDrum) {
+          channel.triggerDrum(note.drumSound, startTime, note.velocity);
         }
+      } else {
+        let midiNote: number;
+        const baseOctave = track.instrumentType === 'bass' ? 2 : (track.instrumentType === 'lead' ? 5 : 4);
+
+        if (note.degree !== undefined) {
+          midiNote = degreeToMidi(
+            note.degree,
+            note.octaveOffset || 0,
+            baseOctave,
+            meta.rootNote,
+            meta.scale
+          );
+        } else if (note.midi !== undefined) {
+          midiNote = meta.scaleLock
+            ? snapMidiToScale(note.midi, meta.rootNote, meta.scale)
+            : note.midi;
+        } else {
+          continue;
+        }
+
+        channel.triggerNote(midiToNoteName(midiNote), gateSeconds, startTime, note.velocity);
       }
     }
   }, totalDurationSeconds);

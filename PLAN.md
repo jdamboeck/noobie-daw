@@ -3,7 +3,7 @@
 ## Current State
 
 - Git is initialized on `main`; the project baseline is committed as `5290926` (`chore: establish project baseline`).
-- There is no automated test script or existing test suite. The production build passes with the current transport changes.
+- There is no automated test script or existing test suite. Production builds pass; Vite reports the existing large-chunk advisory.
 - Hardware MIDI works in the user's browser. Local two-tab collaboration checks pass; external signaling is unavailable in this environment.
 
 ## Work Order
@@ -13,10 +13,10 @@
 - [x] Preserve master effect settings before audio initialization and apply them when the audio graph is created.
 - [x] Serialize first-time audio initialization so simultaneous MIDI notes cannot create duplicate audio graphs.
 - [x] Make WAV export honor master effects, track macros, and solo state.
+- [x] Schedule exported notes chronologically and prevent same-time retriggers of shared metallic drum synths.
 - [x] Route hardware MIDI Note On and Note Off to sustained instrument voices.
 - [x] Check MIDI device discovery and playback in a browser (user-confirmed).
-- [x] Check playback and MIDI device discovery in the user's browser (user-confirmed).
-- [ ] Check MIDI hot-plugging and exported audio in a browser.
+- [ ] Check MIDI hot-plugging and exported audio in a browser; the local offline render stalled before producing a result.
 
 ### 2. Collaboration correctness — in progress
 
@@ -38,6 +38,7 @@
 ### 4. Verification and release baseline — pending
 
 - [x] Restore writable Git metadata, inspect the baseline diff, and commit the existing project before future feature commits.
-- [ ] Add focused automated coverage where feasible, then complete remaining browser smoke checks above.
+- [ ] Add focused automated coverage where feasible; this repository has no test runner or existing test suite.
+- [ ] Complete the remaining external-device, MIDI hot-plug, and WAV-export smoke checks.
 - [x] Run `npm run build`; TypeScript and Vite production compilation pass. Vite reports the existing large-chunk advisory.
 - Regenerate `dist` only as part of an intentional build/release workflow.

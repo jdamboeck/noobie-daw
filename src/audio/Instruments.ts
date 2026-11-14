@@ -61,6 +61,8 @@ export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentCh
     resonance: 3000,
     octaves: 2
   });
+  let lastHatTriggerTime = Number.NEGATIVE_INFINITY;
+  let lastPercTriggerTime = Number.NEGATIVE_INFINITY;
 
   // Reverb send for drum room ambience
   const drumReverb = new Tone.Freeverb({ roomSize: 0.3, dampening: 4000, wet: 0.08 });
@@ -99,14 +101,17 @@ export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentCh
           break;
         case 'hat_closed':
           hatSynth.envelope.decay = 0.035;
-          hatSynth.triggerAttackRelease('32n', t, vel * 0.7);
+          lastHatTriggerTime = Math.max(t, lastHatTriggerTime + 0.001);
+          hatSynth.triggerAttackRelease('32n', lastHatTriggerTime, vel * 0.7);
           break;
         case 'hat_open':
           hatSynth.envelope.decay = 0.25;
-          hatSynth.triggerAttackRelease('16n', t, vel * 0.8);
+          lastHatTriggerTime = Math.max(t, lastHatTriggerTime + 0.001);
+          hatSynth.triggerAttackRelease('16n', lastHatTriggerTime, vel * 0.8);
           break;
         case 'perc':
-          percSynth.triggerAttackRelease('16n', t, vel * 0.8);
+          lastPercTriggerTime = Math.max(t, lastPercTriggerTime + 0.001);
+          percSynth.triggerAttackRelease('16n', lastPercTriggerTime, vel * 0.8);
           break;
       }
     },
