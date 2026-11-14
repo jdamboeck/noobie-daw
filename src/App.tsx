@@ -7,6 +7,7 @@ import { MidiManager } from './midi/MidiManager';
 import { CollaborationManager, TransportSyncMessage } from './multiplayer/CollaborationManager';
 import { BlockTemplate, createBlockFromTemplate, SMART_BLOCKS_TEMPLATES } from './music/blocksLibrary';
 import { VIBE_PROGRESSIONS } from './music/scales';
+import { createProjectFile, parseProjectFile } from './music/projectFile';
 
 import { MusicGarden } from './components/MusicGarden';
 import { MidiModal } from './components/MidiModal';
@@ -535,6 +536,34 @@ export function App() {
     }
   };
 
+  const handleSaveProject = () => {
+    const project = createProjectFile(meta, tracks, blocks, masterFx);
+    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = meta.title.trim().replace(/[^a-z0-9-_]+/gi, '-').replace(/^-|-$/g, '') || 'my-song';
+    link.href = url;
+    link.download = `${filename}.noobie.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLoadProject = async (file: File) => {
+    try {
+      if (file.size > 10 * 1024 * 1024) throw new Error('Song files must be smaller than 10 MB.');
+      const project = parseProjectFile(await file.text());
+      if (!window.confirm(`Load “${project.meta.title}” and replace the song currently open? This will also update the shared song for everyone in this room.`)) return;
+      handleStop();
+      collabManager.replaceProject(project);
+      setActiveTrackId(project.tracks[0].id);
+      setSelectedBlockId(null);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not load that song file.');
+    }
+  };
+
   const selectedBlock = blocks.find(b => b.id === selectedBlockId) || null;
 
   return (
@@ -551,6 +580,8 @@ export function App() {
         peers={peers}
         midiDevices={midiDevices}
         isExporting={isExporting}
+        onSaveProject={handleSaveProject}
+        onLoadProject={handleLoadProject}
         showKeyboard={showKeyboard}
         pendingRemotePlay={Boolean(pendingRemotePlay)}
         onPlayToggle={handlePlayToggle}

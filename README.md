@@ -15,11 +15,13 @@ Sound Garden is a playful place to make music. Pick sounds, arrange them in your
 - **Build a chord journey:** Choose a musical mood or pick a chord path; pitched sounds follow the harmony as your song changes.
 - **Play along:** Use your computer keyboard, the on-screen keys, or a connected MIDI keyboard.
 - **Jam together:** Share a room link so friends can join your song from their own browsers.
-- **Make it yours:** Change the colors, adjust the sounds, and save your finished song as audio.
+- **Make it yours:** Change the sounds, save an editable song file to continue later, or export a finished audio file to share.
 
 ## Come on in
 
 Open **[Sound Garden](https://jdamboeck.github.io/noobie-daw/)** in a modern browser. Press play, try a sound seed, and see what grows. Sound Garden works best with a recent version of Chrome, Edge, or Firefox.
+
+Use **Save project** to keep your tracks, patterns, chords, and sound settings in a `.noobie.json` file. Choose **Load song** to open it again; loading replaces the song currently open in the shared room. **Save audio** creates a WAV you can listen to anywhere.
 
 ## For curious growers
 

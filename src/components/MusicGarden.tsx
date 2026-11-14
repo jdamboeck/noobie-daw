@@ -5,6 +5,7 @@ import {
   Check,
   Download,
   FilePlus2,
+  FolderOpen,
   Headphones,
   Keyboard,
   Link2,
@@ -16,6 +17,7 @@ import {
   Radio,
   RotateCcw,
   Settings2,
+  Save,
   Share2,
   SlidersHorizontal,
   Sparkles,
@@ -49,6 +51,8 @@ interface MusicGardenProps {
   midiDevices: MidiDeviceInfo[];
   pendingRemotePlay: boolean;
   isExporting: boolean;
+  onSaveProject: () => void;
+  onLoadProject: (file: File) => void;
   showKeyboard: boolean;
   onPlayToggle: () => void;
   onStop: () => void;
@@ -102,6 +106,7 @@ const friendlyTrackName = (track: Track, sameTypeIndex: number) => {
 };
 
 export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
+  const projectFileInput = React.useRef<HTMLInputElement>(null);
   const [seedType, setSeedType] = useState<Track['instrumentType'] | 'chords'>('drums');
   const [showSettings, setShowSettings] = useState(false);
   const [showAddSound, setShowAddSound] = useState(false);
@@ -260,12 +265,15 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
       {props.pendingRemotePlay && <div className="garden-friend-note" role="status">A friend started the song! Press Play to join in. <button onClick={props.onPlayToggle}>Join them</button></div>}
 
       <section className="garden-workbench" aria-label="Make your song">
-        <div className="garden-section-heading">
-          <div><span className="garden-kicker">YOUR MUSICAL BACKYARD</span><h2>Sound garden <span aria-hidden="true">🌿</span></h2></div>
-          <div className="garden-heading-actions">
+          <div className="garden-section-heading">
+            <div><span className="garden-kicker">YOUR MUSICAL BACKYARD</span><h2>Sound garden <span aria-hidden="true">🌿</span></h2></div>
+            <div className="garden-heading-actions">
+            <input ref={projectFileInput} type="file" accept=".noobie.json,application/json" className="sr-only" aria-label="Load a saved song" onChange={event => { const file = event.target.files?.[0]; if (file) props.onLoadProject(file); event.target.value = ''; }} />
+            <button className="garden-outline-button" onClick={() => projectFileInput.current?.click()}><FolderOpen size={18} /> Load song</button>
+            <button className="garden-outline-button" onClick={props.onSaveProject}><Save size={18} /> Save project</button>
             <button className="garden-outline-button garden-new-button" onClick={() => setShowFreshConfirm(true)}><FilePlus2 size={18} /> Start fresh</button>
             <button className="garden-outline-button" onClick={() => setShowAddSound(!showAddSound)} aria-expanded={showAddSound}><Plus size={18} /> Add a track</button>
-            <button className="garden-primary-button" onClick={props.onExport} disabled={props.isExporting}><Download size={18} /> {props.isExporting ? 'Saving…' : 'Save my song'}</button>
+            <button className="garden-primary-button" onClick={props.onExport} disabled={props.isExporting}><Download size={18} /> {props.isExporting ? 'Making audio…' : 'Save audio'}</button>
           </div>
         </div>
 

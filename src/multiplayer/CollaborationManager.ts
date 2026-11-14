@@ -205,6 +205,19 @@ export class CollaborationManager {
     });
   }
 
+  public replaceProject(project: { meta: ProjectMeta; tracks: Track[]; blocks: MidiBlock[]; masterFx: MasterEffects }): void {
+    this.doc.transact(() => {
+      this.yMeta.clear();
+      Object.entries(project.meta).forEach(([key, value]) => this.yMeta.set(key, value));
+      this.yTracks.clear();
+      project.tracks.forEach(track => this.yTracks.set(track.id, this.createRecord(track)));
+      this.yBlocks.clear();
+      project.blocks.forEach(block => this.yBlocks.set(block.id, this.createRecord(block)));
+      this.yMasterFx.clear();
+      Object.entries(project.masterFx).forEach(([key, value]) => this.yMasterFx.set(key, value));
+    });
+  }
+
   public setTracks(tracks: Track[]): void {
     this.doc.transact(() => {
       this.yTracks.clear();
