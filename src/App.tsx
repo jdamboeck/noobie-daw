@@ -67,21 +67,91 @@ const DEFAULT_TRACKS: Track[] = [
   }
 ];
 
-// Moon Garden Arcade: a quiet opening that grows into a playful finale.
+const makeStarterBlock = (
+  name: string,
+  emoji: string,
+  instrumentType: InstrumentType,
+  startBar: number,
+  durationBars: number,
+  notes: BlockTemplate['notes']
+) => createBlockFromTemplate({
+  name,
+  emoji,
+  category: 'Paper Rocket Parade',
+  instrumentType,
+  durationBars,
+  description: 'A part of the starter song, written to fit its chord journey.',
+  notes
+}, `trk-${instrumentType}`, startBar, DEFAULT_TRACKS.find(track => track.instrumentType === instrumentType)?.color);
+
+const makeBassPhrase = (startBar: number, roots: number[], name: string) => {
+  const fifths: Record<number, number> = { 0: 4, 5: 2, 3: 0, 4: 1 };
+  const notes = roots.flatMap((root, barIndex) => [0, 4, 8, 12].map((stepInBar, beat) => ({
+    degree: beat === 2 ? fifths[root] : root,
+    octaveOffset: 0,
+    step: barIndex * 16 + stepInBar,
+    durationSteps: 2,
+    velocity: beat === 0 ? 110 : beat === 2 ? 96 : 102
+  })));
+  return makeStarterBlock(name, '🎸', 'bass', startBar, 2, notes);
+};
+
+const makeChordPhrase = (startBar: number, roots: number[], name: string) => {
+  const notes = roots.flatMap((root, barIndex) => [0, 2, 4].map((interval, chordTone) => ({
+    degree: root + interval,
+    octaveOffset: root === 0 ? 0 : -1,
+    step: barIndex * 16,
+    durationSteps: 13,
+    velocity: chordTone === 0 ? 92 : chordTone === 1 ? 83 : 78
+  })));
+  return makeStarterBlock(name, '🎹', 'keys', startBar, 4, notes);
+};
+
+const makeMelodyPhrase = (startBar: number, name: string, notes: BlockTemplate['notes']) =>
+  makeStarterBlock(name, '🚀', 'lead', startBar, 2, notes);
+
+// Paper Rocket Parade follows C–Am–F–G, then C–Am–F–C in C major.
 const DEFAULT_BLOCKS: MidiBlock[] = [
   createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[3], 'trk-drums', 1, '#f43f5e'),
   createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[0], 'trk-drums', 3, '#f43f5e'),
   createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[4], 'trk-drums', 5, '#f43f5e'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[5], 'trk-drums', 7, '#f43f5e'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[8], 'trk-bass', 1, '#10b981'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[6], 'trk-bass', 3, '#10b981'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[7], 'trk-bass', 5, '#10b981'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[9], 'trk-bass', 7, '#10b981'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[14], 'trk-keys', 1, '#f59e0b'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[13], 'trk-keys', 5, '#f59e0b'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[16], 'trk-lead', 3, '#06b6d4'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[17], 'trk-lead', 5, '#06b6d4'),
-  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[15], 'trk-lead', 7, '#06b6d4'),
+  createBlockFromTemplate(SMART_BLOCKS_TEMPLATES[0], 'trk-drums', 7, '#f43f5e'),
+  makeBassPhrase(1, [0, 5], 'Root rocket · C to Am'),
+  makeBassPhrase(3, [3, 4], 'Orbit switch · F to G'),
+  makeBassPhrase(5, [0, 5], 'Round two · C to Am'),
+  makeBassPhrase(7, [3, 0], 'Home stretch · F to C'),
+  makeChordPhrase(1, [0, 5, 3, 4], 'Takeoff · C Am F G'),
+  makeChordPhrase(5, [0, 5, 3, 0], 'Landing · C Am F C'),
+  makeMelodyPhrase(3, 'First flight', [
+    { degree: 5, step: 0, durationSteps: 2, velocity: 92 },
+    { degree: 7, step: 4, durationSteps: 2, velocity: 88 },
+    { degree: 5, step: 8, durationSteps: 2, velocity: 86 },
+    { degree: 3, step: 12, durationSteps: 3, velocity: 92 },
+    { degree: 6, step: 16, durationSteps: 2, velocity: 90 },
+    { degree: 4, step: 20, durationSteps: 2, velocity: 86 },
+    { degree: 1, step: 24, durationSteps: 2, velocity: 88 },
+    { degree: 6, step: 28, durationSteps: 3, velocity: 94 }
+  ]),
+  makeMelodyPhrase(5, 'Starlight answer', [
+    { degree: 4, step: 0, durationSteps: 2, velocity: 88 },
+    { degree: 2, step: 4, durationSteps: 2, velocity: 84 },
+    { degree: 4, step: 8, durationSteps: 2, velocity: 90 },
+    { degree: 7, step: 12, durationSteps: 3, velocity: 94 },
+    { degree: 2, step: 16, durationSteps: 2, velocity: 88 },
+    { degree: 7, step: 20, durationSteps: 2, velocity: 86 },
+    { degree: 5, step: 24, durationSteps: 2, velocity: 90 },
+    { degree: 7, step: 28, durationSteps: 3, velocity: 96 }
+  ]),
+  makeMelodyPhrase(7, 'Home among the stars', [
+    { degree: 5, step: 0, durationSteps: 2, velocity: 90 },
+    { degree: 7, step: 4, durationSteps: 2, velocity: 88 },
+    { degree: 5, step: 8, durationSteps: 2, velocity: 86 },
+    { degree: 3, step: 12, durationSteps: 3, velocity: 90 },
+    { degree: 4, step: 16, durationSteps: 2, velocity: 88 },
+    { degree: 2, step: 20, durationSteps: 2, velocity: 84 },
+    { degree: 0, step: 24, durationSteps: 4, velocity: 98 },
+    { degree: 0, step: 28, durationSteps: 4, velocity: 92 }
+  ])
 ].map((block, blockIndex) => ({
   ...block,
   id: `default-block-${blockIndex}`,
@@ -92,10 +162,10 @@ export function App() {
   // Session State
   const [meta, setMeta] = useState<ProjectMeta>({
     id: 'jam-project',
-    title: 'Moon Garden Arcade',
+    title: 'Paper Rocket Parade',
     bpm: 112,
     rootNote: 'C',
-    scale: 'minor',
+    scale: 'major',
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,

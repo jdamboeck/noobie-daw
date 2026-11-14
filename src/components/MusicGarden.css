@@ -170,6 +170,9 @@
 }
 
 .garden-editor-backdrop { padding: 3vh 2vw; }
+.garden-song-map { display: flex; align-items: center; gap: 9px; margin: 11px 0 0; color: #395d48; font-size: 13px; font-weight: 850; letter-spacing: .02em; }
+.garden-song-map span { padding: 4px 7px; border: 1px solid #d8e5d2; border-radius: 8px; color: #66826a; font-size: 8px; letter-spacing: .11em; }
+.garden-shell.is-dark .garden-song-map { color: #d4e0d3; }.garden-shell.is-dark .garden-song-map span { border-color: #455b47; color: #a9c3a9; }
 .garden-editor-modal { width: min(96vw, 1500px); max-height: 94dvh; display: flex; flex-direction: column; overflow: hidden; }
 .garden-editor-modal .garden-editor-heading { flex: 0 0 auto; }
 .garden-editor-modal .garden-inspector { height: min(72vh, 680px); min-height: 320px; flex: 1 1 auto; min-width: 0; }

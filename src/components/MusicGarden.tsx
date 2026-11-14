@@ -147,6 +147,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <p className="garden-eyebrow"><Sparkles size={16} aria-hidden="true" /> A tiny musical world, made by you</p>
           <h1 id="garden-title">Plant a sound.<br /><span>Grow a song.</span></h1>
           <p className="garden-intro">Pick a little sound seed, plant it in your garden, and watch your song come alive.</p>
+          {props.meta.rootNote === 'C' && props.meta.scale === 'major' && <p className="garden-song-map"><span>CHORD TRAIL</span> C → Am → F → G → C</p>}
           <div className="garden-vibe-line">
             <span aria-hidden="true">{selectedVibe.emoji}</span>
             <span>Your song feels <strong>{selectedVibe.name.toLowerCase()}</strong></span>
