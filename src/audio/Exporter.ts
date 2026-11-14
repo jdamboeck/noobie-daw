@@ -8,6 +8,7 @@ import {
   createLeadChannel,
   InstrumentChannel
 } from './Instruments';
+import { configureMasterCompressor } from './Mastering';
 
 /**
  * Encodes an AudioBuffer into standard 16-bit stereo WAV format
@@ -94,14 +95,16 @@ export async function exportSongToWav(
     const masterSaturation = new Tone.Distortion(0.02);
     const masterDelay = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.15, wet: 0.08 });
     const masterReverb = new Tone.Freeverb({ roomSize: 0.35, dampening: 3500, wet: 0.1 });
-    const masterLimiter = new Tone.Limiter(-0.1);
+    const masterCompressor = new Tone.Compressor();
+    const masterLimiter = new Tone.Limiter(-1);
     const masterGain = new Tone.Gain(masterFx.volume / 100);
 
     masterInput.connect(masterFilter);
     masterFilter.connect(masterSaturation);
     masterSaturation.connect(masterDelay);
     masterDelay.connect(masterReverb);
-    masterReverb.connect(masterLimiter);
+    masterReverb.connect(masterCompressor);
+    masterCompressor.connect(masterLimiter);
     masterLimiter.connect(masterGain);
     masterGain.toDestination();
 
@@ -109,6 +112,7 @@ export async function exportSongToWav(
     masterSaturation.distortion = (masterFx.saturation / 100) * 0.25;
     masterDelay.wet.value = (masterFx.delay / 100) * 0.3;
     masterReverb.wet.value = (masterFx.reverb / 100) * 0.4;
+    configureMasterCompressor(masterCompressor, masterFx.glue ?? 20);
     const channels = new Map<string, InstrumentChannel>();
     const hasSolo = tracks.some(track => track.soloed);
 

@@ -206,6 +206,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
               <label><span>🌀 Echo bounce</span><input type="range" min="0" max="100" value={props.masterFx.delay} onChange={event => props.onFxChange({ delay: Number(event.target.value) })} /><output>{props.masterFx.delay}%</output></label>
               <label><span>☀️ Brightness</span><input type="range" min="0" max="100" value={props.masterFx.filterCutoff} onChange={event => props.onFxChange({ filterCutoff: Number(event.target.value) })} /><output>{props.masterFx.filterCutoff}%</output></label>
               <label><span>📻 Warmth</span><input type="range" min="0" max="100" value={props.masterFx.saturation} onChange={event => props.onFxChange({ saturation: Number(event.target.value) })} /><output>{props.masterFx.saturation}%</output></label>
+              <label><span>🤝 Band glue</span><input type="range" min="0" max="100" value={props.masterFx.glue} onChange={event => props.onFxChange({ glue: Number(event.target.value) })} /><output>{props.masterFx.glue}%</output></label>
             </div>
           </div>
         </section>

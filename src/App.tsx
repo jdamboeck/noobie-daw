@@ -181,7 +181,8 @@ export function App() {
     reverb: 25,
     delay: 20,
     filterCutoff: 95,
-    saturation: 15
+    saturation: 15,
+    glue: 20
   });
 
   // UI & Selection State

@@ -8,6 +8,7 @@ import {
   createLeadChannel,
   InstrumentChannel
 } from './Instruments';
+import { configureMasterCompressor } from './Mastering';
 
 export class AudioEngine {
   private static instance: AudioEngine;
@@ -22,6 +23,7 @@ export class AudioEngine {
   private masterSaturation!: Tone.Distortion;
   private masterReverb!: Tone.Freeverb;
   private masterDelay!: Tone.FeedbackDelay;
+  private masterCompressor!: Tone.Compressor;
   private masterLimiter!: Tone.Limiter;
   private masterGain!: Tone.Gain;
 
@@ -45,7 +47,8 @@ export class AudioEngine {
     reverb: 25,
     delay: 20,
     filterCutoff: 95,
-    saturation: 15
+    saturation: 15,
+    glue: 20
   };
 
   // Deterministic 16th-note step counter
@@ -81,14 +84,16 @@ export class AudioEngine {
           this.masterSaturation = new Tone.Distortion(0.02);
           this.masterDelay = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.15, wet: 0.08 });
           this.masterReverb = new Tone.Freeverb({ roomSize: 0.35, dampening: 3500, wet: 0.1 });
-          this.masterLimiter = new Tone.Limiter(-0.1);
+          this.masterCompressor = new Tone.Compressor();
+          this.masterLimiter = new Tone.Limiter(-1);
           this.masterGain = new Tone.Gain(0.9);
 
           this.masterInput.connect(this.masterFilter);
           this.masterFilter.connect(this.masterSaturation);
           this.masterSaturation.connect(this.masterDelay);
           this.masterDelay.connect(this.masterReverb);
-          this.masterReverb.connect(this.masterLimiter);
+          this.masterReverb.connect(this.masterCompressor);
+          this.masterCompressor.connect(this.masterLimiter);
           this.masterLimiter.connect(this.masterGain);
           this.masterGain.toDestination();
 
@@ -406,6 +411,7 @@ export class AudioEngine {
     this.masterReverb.wet.value = (this.masterFx.reverb / 100) * 0.4;
     this.masterDelay.wet.value = (this.masterFx.delay / 100) * 0.3;
     this.masterSaturation.distortion = (this.masterFx.saturation / 100) * 0.25;
+    configureMasterCompressor(this.masterCompressor, this.masterFx.glue ?? 20);
     const minF = Math.log(200);
     const maxF = Math.log(20000);
     const scale = (maxF - minF) / 100;

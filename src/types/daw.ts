@@ -69,6 +69,7 @@ export interface MasterEffects {
   delay: number; // 0 to 100
   filterCutoff: number; // 0 to 100
   saturation: number; // 0 to 100
+  glue: number; // 0 to 100
 }
 
 export interface UserPresence {
