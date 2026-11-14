@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { MasterEffects, MidiBlock, ProjectMeta, SoundStyle, Track, UserPresence } from '../types/daw';
+import { isProjectBlock, isProjectTrack } from '../music/projectFile';
 
 export interface TransportSyncMessage {
   action: 'play' | 'pause' | 'stop' | 'seek';
@@ -96,18 +97,25 @@ export class CollaborationManager {
       const states = awareness.getStates();
       const peers: UserPresence[] = [];
       states.forEach((state, clientId) => {
-        if (state.user) {
-          peers.push(state.user as UserPresence);
+        if (this.isValidPresence(state.user)) {
+          peers.push(state.user);
         }
 
-        const action = state.transportAction as TransportSyncMessage | undefined;
+        const action = state.transportAction as Partial<TransportSyncMessage> | undefined;
         if (!action || state.user?.id === this.localUser.id) return;
-        if (!['play', 'pause', 'stop', 'seek'].includes(action.action)) return;
-        if (!Number.isFinite(action.timestamp) || Date.now() - action.timestamp > 10000) return;
+        const now = Date.now();
+        if (!['play', 'pause', 'stop', 'seek'].includes(action.action || '')) return;
+        if (!Number.isFinite(action.timestamp) || action.timestamp! < now - 10000 || action.timestamp! > now + 10000) return;
+        if (!Number.isFinite(action.bar) || action.bar! < 1 || action.bar! > 128) return;
         if (this.receivedTransportTimestamps.get(clientId) === action.timestamp) return;
 
-        this.receivedTransportTimestamps.set(clientId, action.timestamp);
-        this.onTransportActionCallbacks.forEach(cb => cb(action));
+        const safeAction: TransportSyncMessage = {
+          action: action.action as TransportSyncMessage['action'],
+          bar: action.bar!,
+          timestamp: action.timestamp!
+        };
+        this.receivedTransportTimestamps.set(clientId, safeAction.timestamp);
+        this.onTransportActionCallbacks.forEach(cb => cb(safeAction));
       });
       this.onPeersChangeCallbacks.forEach(cb => cb(peers));
     };
@@ -321,6 +329,18 @@ export class CollaborationManager {
   private readRecord<T>(record: unknown): T {
     if (record instanceof Y.Map) return record.toJSON() as T;
     return record as T;
+  }
+
+  private isValidPresence(value: unknown): value is UserPresence {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const presence = value as Partial<UserPresence>;
+    return typeof presence.id === 'string' && presence.id.length > 0 && presence.id.length <= 128
+      && typeof presence.name === 'string' && presence.name.length > 0 && presence.name.length <= 64
+      && typeof presence.color === 'string' && /^#[\da-f]{6}$/i.test(presence.color)
+      && (presence.cursorBar === undefined || (Number.isFinite(presence.cursorBar) && presence.cursorBar >= 1 && presence.cursorBar <= 128))
+      && (presence.cursorTrackId === undefined || (typeof presence.cursorTrackId === 'string' && presence.cursorTrackId.length <= 128))
+      && (presence.selectedBlockId === undefined || (typeof presence.selectedBlockId === 'string' && presence.selectedBlockId.length <= 128))
+      && Number.isFinite(presence.lastActive);
   }
 
   // --- Subscriptions ---

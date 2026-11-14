@@ -15,8 +15,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ roomId, peers, isOpen, o
   if (!isOpen) return null;
 
   const roomUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}${window.location.pathname}?room=${roomId}`
-    : `https://jamblocks.app/?room=${roomId}`;
+    ? (() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', roomId);
+      return url.toString();
+    })()
+    : `https://jamblocks.app/?room=${encodeURIComponent(roomId)}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomUrl);

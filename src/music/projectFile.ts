@@ -17,35 +17,40 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isString = (value: unknown): value is string => typeof value === 'string';
+const isShortString = (value: unknown, maxLength: number): value is string =>
+  isString(value) && value.length > 0 && value.length <= maxLength;
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 const isNumberBetween = (value: unknown, min: number, max: number): value is number =>
   isFiniteNumber(value) && value >= min && value <= max;
 
-const isMeta = (value: unknown): value is ProjectMeta => {
+export const isProjectMeta = (value: unknown): value is ProjectMeta => {
   if (!isRecord(value)) return false;
-  return isString(value.id)
-    && isString(value.title)
+  return isShortString(value.id, 128)
+    && isShortString(value.title, 200)
     && isNumberBetween(value.bpm, 40, 240)
     && ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].includes(String(value.rootNote))
     && ['major', 'minor', 'pentatonic_major', 'pentatonic_minor', 'blues', 'dorian'].includes(String(value.scale))
     && typeof value.scaleLock === 'boolean'
     && typeof value.loopEnabled === 'boolean'
-    && isNumberBetween(value.loopStartBar, 1, 128)
-    && isNumberBetween(value.loopEndBar, 1, 128)
-    && isNumberBetween(value.totalBars, 1, 128)
-    && (value.chordProgression === undefined || (Array.isArray(value.chordProgression) && value.chordProgression.every(degree => Number.isInteger(degree) && degree >= 0 && degree <= 11)))
-    && (value.chordQualities === undefined || (Array.isArray(value.chordQualities) && value.chordQualities.every(quality => ['diatonic', 'dominant7', 'major7', 'minor7'].includes(String(quality)))))
+    && Number.isInteger(value.loopStartBar) && isNumberBetween(value.loopStartBar, 1, 128)
+    && Number.isInteger(value.loopEndBar) && isNumberBetween(value.loopEndBar, 2, 129)
+    && Number.isInteger(value.totalBars) && isNumberBetween(value.totalBars, 1, 128)
+    && value.loopStartBar <= value.totalBars
+    && value.loopEndBar > value.loopStartBar
+    && value.loopEndBar <= value.totalBars + 1
+    && (value.chordProgression === undefined || (Array.isArray(value.chordProgression) && value.chordProgression.length <= 128 && value.chordProgression.every(degree => Number.isInteger(degree) && degree >= 0 && degree <= 11)))
+    && (value.chordQualities === undefined || (Array.isArray(value.chordQualities) && value.chordQualities.length <= 128 && value.chordQualities.every(quality => ['diatonic', 'dominant7', 'major7', 'minor7'].includes(String(quality)))))
     && (value.soundStyle === undefined || ['hip-hop', 'rock', 'chiptunes', 'pop'].includes(String(value.soundStyle)));
 };
 
-const isTrack = (value: unknown): value is Track => {
+export const isProjectTrack = (value: unknown): value is Track => {
   if (!isRecord(value) || !isRecord(value.macros)) return false;
-  return isString(value.id)
-    && isString(value.name)
-    && isString(value.emoji)
+  return isShortString(value.id, 128)
+    && isShortString(value.name, 128)
+    && isShortString(value.emoji, 32)
     && ['drums', 'bass', 'keys', 'lead'].includes(String(value.instrumentType))
-    && isString(value.presetId)
-    && isString(value.color)
+    && isShortString(value.presetId, 128)
+    && typeof value.color === 'string' && /^#[\da-f]{6}$/i.test(value.color)
     && isNumberBetween(value.volume, 0, 1)
     && isNumberBetween(value.pan, -1, 1)
     && typeof value.muted === 'boolean'
@@ -56,32 +61,35 @@ const isTrack = (value: unknown): value is Track => {
     && (value.soundStyleOverride === undefined || value.soundStyleOverride === null || ['hip-hop', 'rock', 'chiptunes', 'pop'].includes(String(value.soundStyleOverride)));
 };
 
-const isNote = (value: unknown): boolean => {
+const isNote = (value: unknown, maxSteps: number): boolean => {
   if (!isRecord(value)) return false;
-  return isString(value.id)
-    && Number.isInteger(value.step) && Number(value.step) >= 0
-    && Number.isInteger(value.durationSteps) && Number(value.durationSteps) >= 1
+  return isShortString(value.id, 128)
+    && Number.isSafeInteger(value.step) && Number(value.step) >= 0 && Number(value.step) < maxSteps
+    && Number.isSafeInteger(value.durationSteps) && Number(value.durationSteps) >= 1 && Number(value.durationSteps) <= 2048
     && isNumberBetween(value.velocity, 0, 127)
-    && (value.degree === undefined || Number.isInteger(value.degree))
-    && (value.octaveOffset === undefined || Number.isInteger(value.octaveOffset))
+    && (value.degree === undefined || (Number.isSafeInteger(value.degree) && Number(value.degree) >= -128 && Number(value.degree) <= 128))
+    && (value.octaveOffset === undefined || (Number.isSafeInteger(value.octaveOffset) && Number(value.octaveOffset) >= -8 && Number(value.octaveOffset) <= 8))
     && (value.midi === undefined || isNumberBetween(value.midi, 0, 127))
     && (value.drumSound === undefined || ['kick', 'snare', 'clap', 'hat_closed', 'hat_open', 'perc'].includes(String(value.drumSound)));
 };
 
-const isBlock = (value: unknown): value is MidiBlock => {
+export const isProjectBlock = (value: unknown): value is MidiBlock => {
   if (!isRecord(value)) return false;
-  return isString(value.id)
-    && isString(value.trackId)
-    && isString(value.name)
-    && isNumberBetween(value.startBar, 1, 128)
-    && isNumberBetween(value.durationBars, 1, 128)
-    && isString(value.category)
-    && Array.isArray(value.notes) && value.notes.every(isNote)
-    && (value.emoji === undefined || isString(value.emoji))
-    && (value.color === undefined || isString(value.color));
+  const durationBars = Number(value.durationBars);
+  const maxNotes = 4096;
+  return isShortString(value.id, 128)
+    && isShortString(value.trackId, 128)
+    && isShortString(value.name, 128)
+    && Number.isInteger(value.startBar) && isNumberBetween(value.startBar, 1, 128)
+    && Number.isInteger(value.durationBars) && isNumberBetween(value.durationBars, 1, 128)
+    && value.startBar + durationBars - 1 <= 128
+    && isShortString(value.category, 128)
+    && Array.isArray(value.notes) && value.notes.length <= maxNotes && value.notes.every(note => isNote(note, durationBars * 16))
+    && (value.emoji === undefined || (isString(value.emoji) && value.emoji.length <= 32))
+    && (value.color === undefined || (typeof value.color === 'string' && /^#[\da-f]{6}$/i.test(value.color)));
 };
 
-const isMasterEffects = (value: unknown): value is MasterEffects => {
+export const isProjectMasterEffects = (value: unknown): value is MasterEffects => {
   if (!isRecord(value)) return false;
   return ['volume', 'reverb', 'delay', 'filterCutoff', 'saturation', 'glue']
     .every(key => isNumberBetween(value[key], 0, 100));
@@ -113,15 +121,16 @@ export function parseProjectFile(contents: string): ProjectFile {
   if (value.version !== PROJECT_FILE_VERSION) {
     throw new Error(`This project uses an unsupported format version (${String(value.version)}).`);
   }
-  if (!isMeta(value.meta) || !Array.isArray(value.tracks) || value.tracks.length === 0 || !value.tracks.every(isTrack)
-    || !Array.isArray(value.blocks) || !value.blocks.every(isBlock) || !isMasterEffects(value.masterFx)) {
+  if (!isProjectMeta(value.meta) || !Array.isArray(value.tracks) || value.tracks.length === 0 || value.tracks.length > 128 || !value.tracks.every(isProjectTrack)
+    || !Array.isArray(value.blocks) || value.blocks.length > 4096 || !value.blocks.every(isProjectBlock) || !isProjectMasterEffects(value.masterFx)) {
     throw new Error('This project is incomplete or contains invalid song data.');
   }
 
   const trackIds = new Set(value.tracks.map(track => track.id));
+  const totalNotes = value.blocks.reduce((sum, block) => sum + block.notes.length, 0);
   if (trackIds.size !== value.tracks.length || new Set(value.blocks.map(block => block.id)).size !== value.blocks.length
-    || value.blocks.some(block => !trackIds.has(block.trackId))) {
-    throw new Error('This project has duplicate IDs or sounds attached to a missing track.');
+    || value.blocks.some(block => !trackIds.has(block.trackId)) || totalNotes > 100000) {
+    throw new Error('This project has duplicate IDs, invalid track references, or too much song data.');
   }
 
   return value as unknown as ProjectFile;

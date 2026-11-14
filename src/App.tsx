@@ -7,7 +7,14 @@ import { MidiManager } from './midi/MidiManager';
 import { CollaborationManager, TransportSyncMessage } from './multiplayer/CollaborationManager';
 import { BlockTemplate, createBlockFromTemplate, SMART_BLOCKS_TEMPLATES } from './music/blocksLibrary';
 import { VIBE_PROGRESSIONS } from './music/scales';
-import { createProjectFile, parseProjectFile } from './music/projectFile';
+import {
+  createProjectFile,
+  isProjectBlock,
+  isProjectMasterEffects,
+  isProjectMeta,
+  isProjectTrack,
+  parseProjectFile
+} from './music/projectFile';
 
 import { MusicGarden } from './components/MusicGarden';
 import { MidiModal } from './components/MidiModal';
@@ -210,6 +217,10 @@ export function App() {
   const [midiDevices, setMidiDevices] = useState<MidiDeviceInfo[]>([]);
   const [peers, setPeers] = useState<UserPresence[]>([]);
   const midiNoteTrackIds = useRef<Map<string, string>>(new Map());
+  const tracksRef = useRef(tracks);
+  const metaRef = useRef(meta);
+  tracksRef.current = tracks;
+  metaRef.current = meta;
 
   const audioEngine = AudioEngine.getInstance();
   const midiManager = MidiManager.getInstance();
@@ -225,7 +236,14 @@ export function App() {
   useEffect(() => {
     // 1. Get Room ID from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get('room') || 'summer-jam';
+    const requestedRoomId = urlParams.get('room');
+    const hasValidRoomId = Boolean(requestedRoomId && requestedRoomId.length <= 128);
+    const roomId = hasValidRoomId ? requestedRoomId! : `jam-${window.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`;
+    if (!hasValidRoomId) {
+      const roomUrl = new URL(window.location.href);
+      roomUrl.searchParams.set('room', roomId);
+      window.history.replaceState(window.history.state, '', roomUrl);
+    }
 
     // 2. Connect WebRTC Collaboration Manager
     collabManager.connect(roomId, {
@@ -236,22 +254,34 @@ export function App() {
     });
 
     const unsubState = collabManager.onStateChange(() => {
+      // Bound peer-controlled collections before converting Yjs records into React state.
+      if (collabManager.yTracks.size > 128 || collabManager.yBlocks.size > 4096) return;
       // Sync state from Yjs doc
       const remoteMeta = collabManager.yMeta.toJSON();
       if (remoteMeta && Object.keys(remoteMeta).length > 0) {
-        setMeta(prev => ({ ...prev, ...remoteMeta }));
+        setMeta(prev => {
+          const candidate = { ...prev, ...remoteMeta };
+          return isProjectMeta(candidate) ? candidate : prev;
+        });
       }
       const remoteTracks = collabManager.getTracks();
-      if (remoteTracks && remoteTracks.length > 0) {
-        setTracks([...remoteTracks]);
+      const validTracks = remoteTracks.filter(isProjectTrack);
+      const validTrackIds = new Set(validTracks.map(track => track.id));
+      if (validTracks.length > 0 && validTrackIds.size === validTracks.length) {
+        setTracks(validTracks);
       }
       const remoteBlocks = collabManager.getBlocks();
-      if (remoteBlocks) {
-        setBlocks([...remoteBlocks]);
+      if (validTracks.length > 0) {
+        const validBlocks = remoteBlocks.filter((block) => isProjectBlock(block) && validTrackIds.has(block.trackId));
+        const noteCount = validBlocks.reduce((total, block) => total + block.notes.length, 0);
+        if (noteCount <= 100000) setBlocks(validBlocks);
       }
       const remoteFx = collabManager.yMasterFx.toJSON();
       if (remoteFx && Object.keys(remoteFx).length > 0) {
-        setMasterFx(prev => ({ ...prev, ...remoteFx }));
+        setMasterFx(prev => {
+          const candidate = { ...prev, ...remoteFx };
+          return isProjectMasterEffects(candidate) ? candidate : prev;
+        });
       }
     });
 
@@ -316,11 +346,15 @@ export function App() {
 
     // 5. Global Drag & Drop listener for templates
     const handleDropTemplate = (e: any) => {
-      const { templateIndex, trackId, bar } = e.detail;
-      const template = SMART_BLOCKS_TEMPLATES[templateIndex];
-      const targetTrack = tracks.find(t => t.id === trackId) || tracks[0];
-      if (template) {
-        const newBlock = createBlockFromTemplate(template, targetTrack.id, bar, targetTrack.color);
+      const { templateIndex, trackId, bar } = e.detail ?? {};
+      const template = Number.isInteger(templateIndex) ? SMART_BLOCKS_TEMPLATES[templateIndex] : undefined;
+      const targetTrack = tracksRef.current.find(t => t.id === trackId);
+      if (template && targetTrack && Number.isInteger(bar) && bar >= 1 && bar <= 128) {
+        const boundedBar = Math.min(bar, 128 - template.durationBars + 1);
+        const newBlock = createBlockFromTemplate(template, targetTrack.id, boundedBar, targetTrack.color);
+        if (boundedBar + template.durationBars - 1 > metaRef.current.totalBars) {
+          collabManager.updateMeta({ totalBars: boundedBar + template.durationBars - 1 });
+        }
         collabManager.addBlock(newBlock);
       }
     };
@@ -474,6 +508,10 @@ export function App() {
       targetBar = lastBlock;
     }
 
+    targetBar = Math.min(targetBar, 128 - template.durationBars + 1);
+    const requiredBars = targetBar + template.durationBars - 1;
+    if (requiredBars > meta.totalBars) collabManager.updateMeta({ totalBars: requiredBars });
+
     const newBlock = createBlockFromTemplate(template, targetTrack.id, targetBar, targetTrack.color);
     collabManager.addBlock(newBlock);
     setSelectedBlockId(newBlock.id);
@@ -502,9 +540,11 @@ export function App() {
     const duplicated: MidiBlock = {
       ...block,
       id: `block-${Date.now()}`,
-      startBar: block.startBar + block.durationBars,
+      startBar: Math.min(block.startBar + block.durationBars, 128 - block.durationBars + 1),
       notes: block.notes.map(n => ({ ...n, id: `note-${Date.now()}-${Math.random()}` }))
     };
+    const requiredBars = duplicated.startBar + duplicated.durationBars - 1;
+    if (requiredBars > meta.totalBars) collabManager.updateMeta({ totalBars: requiredBars });
     collabManager.addBlock(duplicated);
   };
 
