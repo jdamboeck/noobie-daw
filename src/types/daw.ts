@@ -44,6 +44,7 @@ export interface Track {
   pan: number;
   muted: boolean;
   soloed: boolean;
+  followChords?: boolean;
   macros: {
     param1: number; // e.g. Punch / Growl / Sparkle / Echo (0 - 100)
     param2: number; // e.g. Room / Brightness / Cloud / Glide (0 - 100)
@@ -58,7 +59,6 @@ export interface ProjectMeta {
   scale: ScaleMode;
   chordProgression?: number[];
   chordQualities?: ChordQuality[];
-  chordLock?: boolean;
   scaleLock: boolean;
   loopEnabled: boolean;
   loopStartBar: number;

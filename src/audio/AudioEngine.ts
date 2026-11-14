@@ -35,7 +35,6 @@ export class AudioEngine {
     bpm: 116,
     rootNote: 'C',
     scale: 'minor',
-    chordLock: true,
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,
@@ -289,14 +288,14 @@ export class AudioEngine {
             this.projectMeta.rootNote,
             this.projectMeta.scale
           );
-          if (this.projectMeta.chordLock !== false) {
+          if (track.followChords !== false) {
             midiNote = snapMidiToChord(midiNote, this.voicedProgression[Math.floor(step / 16) % this.voicedProgression.length]);
           }
         } else if (note.midi !== undefined) {
           midiNote = this.projectMeta.scaleLock
             ? snapMidiToScale(note.midi, this.projectMeta.rootNote, this.projectMeta.scale)
             : note.midi;
-          if (this.projectMeta.chordLock !== false) {
+          if (track.followChords !== false) {
             midiNote = snapMidiToChord(midiNote, this.voicedProgression[Math.floor(step / 16) % this.voicedProgression.length]);
           }
         } else {
@@ -338,7 +337,7 @@ export class AudioEngine {
     let snappedMidi = this.projectMeta.scaleLock
       ? snapMidiToScale(rawMidi, this.projectMeta.rootNote, this.projectMeta.scale)
       : rawMidi;
-    if (this.projectMeta.chordLock !== false) {
+    if (track.followChords !== false) {
       snappedMidi = snapMidiToChord(snappedMidi, this.voicedProgression[Math.floor(this.currentStep / 16) % this.voicedProgression.length]);
     }
 
@@ -359,7 +358,7 @@ export class AudioEngine {
     let midi = this.projectMeta.scaleLock
       ? snapMidiToScale(rawMidi, this.projectMeta.rootNote, this.projectMeta.scale)
       : rawMidi;
-    if (this.projectMeta.chordLock !== false) {
+    if (track.followChords !== false) {
       midi = snapMidiToChord(midi, this.voicedProgression[Math.floor(this.currentStep / 16) % this.voicedProgression.length]);
     }
     this.activeMidiNotes.set(`${trackId}:${rawMidi}`, midi);
@@ -418,7 +417,7 @@ export class AudioEngine {
           : note.midi;
       }
       if (midiNote !== undefined) {
-        if (this.projectMeta.chordLock !== false) {
+        if (track.followChords !== false) {
           const bar = Math.floor(note.step / 16) % this.voicedProgression.length;
           midiNote = snapMidiToChord(midiNote, this.voicedProgression[bar]);
         }

@@ -196,7 +196,7 @@ export async function exportSongToWav(
           continue;
         }
 
-        if (meta.chordLock !== false) {
+        if (track.followChords !== false) {
           const bar = Math.floor(startTime / secondsPerBar);
           midiNote = snapMidiToChord(midiNote, voicedProgression[bar % voicedProgression.length]);
         }

@@ -38,6 +38,7 @@ const DEFAULT_TRACKS: Track[] = [
     pan: 0,
     muted: false,
     soloed: false,
+    followChords: true,
     macros: { param1: 20, param2: 60 }
   },
   {
@@ -51,6 +52,7 @@ const DEFAULT_TRACKS: Track[] = [
     pan: -0.15,
     muted: false,
     soloed: false,
+    followChords: true,
     macros: { param1: 60, param2: 45 }
   },
   {
@@ -64,6 +66,7 @@ const DEFAULT_TRACKS: Track[] = [
     pan: 0.15,
     muted: false,
     soloed: false,
+    followChords: true,
     macros: { param1: 40, param2: 30 }
   }
 ];
@@ -170,7 +173,6 @@ export function App() {
     rootNote: 'C',
     scale: 'major',
     chordProgression: Array.from({ length: 16 }, (_, index) => VIBE_PROGRESSIONS.happy[index % VIBE_PROGRESSIONS.happy.length]),
-    chordLock: true,
     scaleLock: true,
     loopEnabled: true,
     loopStartBar: 1,
@@ -441,11 +443,23 @@ export function App() {
       pan: 0,
       muted: false,
       soloed: false,
+      followChords: type !== 'drums',
       macros: { param1: 50, param2: 50 },
       soundStyleOverride: null
     };
     collabManager.addTrack(newTrack);
     setActiveTrackId(newTrack.id);
+  };
+
+  const handleRemoveTrack = (trackId: string) => {
+    if (tracks.length <= 1) return;
+    collabManager.removeTrack(trackId);
+    if (activeTrackId === trackId) {
+      setActiveTrackId(tracks.find(track => track.id !== trackId)?.id || '');
+    }
+    if (blocks.some(block => block.trackId === trackId && block.id === selectedBlockId)) {
+      setSelectedBlockId(null);
+    }
   };
 
   const handleAddBlockFromTemplate = (template: BlockTemplate) => {
@@ -549,6 +563,8 @@ export function App() {
         onSelectBlock={setSelectedBlockId}
         onSeek={handleSeek}
         onAddTrack={handleAddTrack}
+        onRemoveTrack={handleRemoveTrack}
+        onSetTrackChordFollow={(trackId, followChords) => collabManager.updateTrack(trackId, { followChords })}
         onPlantSeed={handleAddBlockFromTemplate}
         onPlantBlank={handleAddBlankBlock}
         onPreviewSeed={(template) => {

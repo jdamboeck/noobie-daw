@@ -7,6 +7,7 @@ import {
   FilePlus2,
   Headphones,
   Keyboard,
+  Link2,
   Moon,
   Pause,
   Pencil,
@@ -19,6 +20,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Sun,
+  Unlink2,
   Volume2,
   VolumeX,
   X
@@ -58,6 +60,8 @@ interface MusicGardenProps {
   onSelectBlock: (id: string | null) => void;
   onSeek: (bar: number) => void;
   onAddTrack: (type: Track['instrumentType']) => void;
+  onRemoveTrack: (trackId: string) => void;
+  onSetTrackChordFollow: (trackId: string, followChords: boolean) => void;
   onPlantSeed: (template: BlockTemplate) => void;
   onPlantBlank: (type: Track['instrumentType']) => void;
   onPreviewSeed: (template: BlockTemplate) => void;
@@ -274,9 +278,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
           <div className="garden-map" style={{ minWidth: `${Math.max(760, props.meta.totalBars * 62)}px` }}>
             <div className="garden-map-labels" aria-hidden="true"><span>Sound beds</span><div className="garden-ruler" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties}>{Array.from({ length: props.meta.totalBars }, (_, index) => <span key={index}>{index === 0 ? 'Start' : index === props.meta.totalBars - 1 ? 'Finish' : index === 4 ? 'A little later' : index === 8 ? 'Halfway' : index === 12 ? 'Nearly there' : ''}</span>)}</div></div>
             <div className="garden-chord-track">
-              <div className="garden-chord-track-label"><span aria-hidden="true">🎼</span><span className="garden-chord-track-copy"><strong>Chord garden</strong><small>Guides pitched sounds</small><span className="garden-chord-track-controls">
-                <button className="garden-follow-button" onClick={() => props.onMetaChange({ chordLock: props.meta.chordLock === false })} aria-label="Make pitched tracks follow the chord progression" title="Make pitched tracks follow the chord progression" aria-pressed={props.meta.chordLock !== false}>{props.meta.chordLock === false ? 'Follow chords' : 'Following'}</button>
-              </span></span></div>
+              <div className="garden-chord-track-label"><span aria-hidden="true">🎼</span><span className="garden-chord-track-copy"><strong>Chord garden</strong><small>Choose the harmony for your song</small></span></div>
               <div className="garden-chord-cells" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties}>
                 {chordProgression.map((degree, bar) => {
                   const chord = getChordForDegree(degree, props.meta.rootNote, props.meta.scale, props.meta.chordQualities?.[bar]);
@@ -311,7 +313,9 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
                 </button>
                 <div className="garden-bed-controls">
                   <label className="garden-bed-volume"><span className="sr-only">{friendlyTrackName(track, sameTypeIndex)} volume</span><input type="range" min="0" max="1" step="0.05" value={track.volume} onChange={event => props.onVolumeChange(track.id, Number(event.target.value))} /></label>
+                  {track.instrumentType !== 'drums' && <button className="garden-chord-follow-button" onClick={() => props.onSetTrackChordFollow(track.id, track.followChords === false)} aria-label={`${track.followChords === false ? 'Follow chords with' : 'Stop following chords for'} ${friendlyTrackName(track, sameTypeIndex)}`} title={track.followChords === false ? 'Follow chords' : 'Following chords'} aria-pressed={track.followChords !== false}>{track.followChords === false ? <Unlink2 size={16} /> : <Link2 size={16} />}</button>}
                   <button className={`garden-mute-button ${track.muted ? 'is-muted' : ''}`} onClick={() => props.onToggleMute(track)} aria-label={`${track.muted ? 'Wake up' : 'Quiet'} ${friendlyTrackName(track, sameTypeIndex)}`} aria-pressed={track.muted}>{track.muted ? <VolumeX size={17} /> : <Volume2 size={17} />}</button>
+                  {props.tracks.length > 1 && <button className="garden-mute-button garden-remove-track-button" onClick={() => props.onRemoveTrack(track.id)} aria-label={`Remove ${friendlyTrackName(track, sameTypeIndex)}`} title={`Remove ${friendlyTrackName(track, sameTypeIndex)}`}><X size={16} /></button>}
                 </div>
                 <div className="garden-bed-vine" style={{ '--bar-count': props.meta.totalBars } as React.CSSProperties} onClick={event => {
                   if ((event.target as HTMLElement).closest('button')) return;
