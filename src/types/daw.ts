@@ -3,6 +3,7 @@ export type RootNote = 'C' | 'C#' | 'D' | 'D#' | 'E' | 'F' | 'F#' | 'G' | 'G#' |
 export type ScaleMode = 'major' | 'minor' | 'pentatonic_major' | 'pentatonic_minor' | 'blues' | 'dorian';
 
 export type InstrumentType = 'drums' | 'bass' | 'keys' | 'lead';
+export type SoundStyle = 'hip-hop' | 'rock' | 'chiptunes' | 'pop';
 
 export type DrumSound = 'kick' | 'snare' | 'clap' | 'hat_closed' | 'hat_open' | 'perc';
 
@@ -36,6 +37,7 @@ export interface Track {
   emoji: string;
   instrumentType: InstrumentType;
   presetId: string;
+  soundStyleOverride?: SoundStyle | null;
   color: string;
   volume: number;
   pan: number;
@@ -58,6 +60,7 @@ export interface ProjectMeta {
   loopStartBar: number;
   loopEndBar: number;
   totalBars: number;
+  soundStyle?: SoundStyle;
 }
 
 export interface MasterEffects {

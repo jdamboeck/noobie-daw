@@ -25,7 +25,8 @@ import {
 } from 'lucide-react';
 import { BlockTemplate, SMART_BLOCKS_TEMPLATES } from '../music/blocksLibrary';
 import { VIBE_PRESETS } from '../music/scales';
-import { MasterEffects, MidiBlock, NoteEvent, ProjectMeta, Track, UserPresence } from '../types/daw';
+import { SOUND_STYLE_PRESETS } from '../music/soundStyles';
+import { MasterEffects, MidiBlock, NoteEvent, ProjectMeta, SoundStyle, Track, UserPresence } from '../types/daw';
 import { MidiDeviceInfo } from '../types/midi';
 import { Inspector } from './Inspector';
 import { VirtualKeyboard } from './VirtualKeyboard';
@@ -49,6 +50,7 @@ interface MusicGardenProps {
   onStop: () => void;
   onStartFresh: () => void;
   onMetaChange: (update: Partial<ProjectMeta>) => void;
+  onSetSoundStyle: (style: SoundStyle) => void;
   onFxChange: (update: Partial<MasterEffects>) => void;
   onSelectTrack: (id: string) => void;
   onSelectBlock: (id: string | null) => void;
@@ -67,6 +69,7 @@ interface MusicGardenProps {
   onExport: () => void;
   onToggleKeyboard: () => void;
   onUpdateTrackMacros: (macros: Partial<Track['macros']>) => void;
+  onUpdateTrackStyle: (style: SoundStyle | null) => void;
   onUpdateBlockNotes: (blockId: string, notes: NoteEvent[]) => void;
   onAuditionNote: (midi: number) => void;
   onAuditionDrum: (sound: NonNullable<NoteEvent['drumSound']>) => void;
@@ -182,6 +185,17 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
               </button>
             ))}
           </div>
+          <div className="garden-style-picker">
+            <div className="garden-style-heading"><span className="garden-kicker">BAND SOUND</span><span>Pick a sound world for every instrument</span></div>
+            <div className="garden-vibe-options" role="group" aria-label="Style for all instruments">
+              {SOUND_STYLE_PRESETS.map(style => (
+                <button key={style.id} className={`garden-vibe-option ${props.meta.soundStyle === style.id ? 'is-selected' : ''}`} onClick={() => props.onSetSoundStyle(style.id)} aria-label={`${style.name}: ${style.description}`} aria-pressed={(props.meta.soundStyle ?? 'pop') === style.id}>
+                  <span>{style.emoji}</span><span>{style.name}</span>{(props.meta.soundStyle ?? 'pop') === style.id && <Check size={16} aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
+            <p className="garden-style-note">Changing the band sound resets individual instrument choices to follow along.</p>
+          </div>
           <div className="garden-settings-bottom">
             <div><span className="garden-kicker">HOW FAST?</span><div className="garden-speed-options">
               {SPEEDS.map(speed => <button key={speed.bpm} onClick={() => props.onMetaChange({ bpm: speed.bpm })} className={Math.abs(props.meta.bpm - speed.bpm) < 5 ? 'is-selected' : ''} aria-pressed={Math.abs(props.meta.bpm - speed.bpm) < 5}>{speed.emoji} {speed.label}</button>)}
@@ -291,7 +305,7 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
 
       {showFreshConfirm && <div className="garden-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowFreshConfirm(false); }}><section className="garden-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="garden-confirm-title" aria-describedby="garden-confirm-copy"><span className="garden-confirm-emoji" aria-hidden="true">🌱</span><h2 id="garden-confirm-title">Make room for a new song?</h2><p id="garden-confirm-copy">This clears the blocks from this shared timeline. Your sounds, tempo, and settings will stay.</p><div><button className="garden-outline-button" onClick={() => setShowFreshConfirm(false)}>Keep this song</button><button className="garden-primary-button" onClick={() => { props.onStartFresh(); setShowFreshConfirm(false); }}>Start with an empty timeline</button></div></section></div>}
 
-      {showEditor && activeTrack && <div className="garden-modal-backdrop garden-editor-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowEditor(false); }}><section className="garden-editor-modal" role="dialog" aria-modal="true" aria-labelledby="garden-editor-title"><div className="garden-editor-heading"><div><span className="garden-kicker">TINKER TIME</span><h2 id="garden-editor-title">Make this sound your own</h2></div><button className="garden-icon-button" onClick={() => setShowEditor(false)} aria-label="Close sound editor"><X size={20} /></button></div><Inspector activeTrack={activeTrack} selectedBlock={props.selectedBlock} meta={props.meta} onUpdateTrackMacros={props.onUpdateTrackMacros} onUpdateBlockNotes={props.onUpdateBlockNotes} onCloseBlock={() => setShowEditor(false)} onAuditionNote={props.onAuditionNote} onAuditionDrum={props.onAuditionDrum} /></section></div>}
+      {showEditor && activeTrack && <div className="garden-modal-backdrop garden-editor-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowEditor(false); }}><section className="garden-editor-modal" role="dialog" aria-modal="true" aria-labelledby="garden-editor-title"><div className="garden-editor-heading"><div><span className="garden-kicker">TINKER TIME</span><h2 id="garden-editor-title">Make this sound your own</h2></div><button className="garden-icon-button" onClick={() => setShowEditor(false)} aria-label="Close sound editor"><X size={20} /></button></div><Inspector activeTrack={activeTrack} selectedBlock={props.selectedBlock} meta={props.meta} onUpdateTrackMacros={props.onUpdateTrackMacros} onUpdateTrackStyle={props.onUpdateTrackStyle} onUpdateBlockNotes={props.onUpdateBlockNotes} onCloseBlock={() => setShowEditor(false)} onAuditionNote={props.onAuditionNote} onAuditionDrum={props.onAuditionDrum} /></section></div>}
     </main>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { InstrumentType, MasterEffects, MidiBlock, NoteEvent, ProjectMeta, Track, UserPresence } from './types/daw';
+import { InstrumentType, MasterEffects, MidiBlock, NoteEvent, ProjectMeta, SoundStyle, Track, UserPresence } from './types/daw';
 import { MidiDeviceInfo } from './types/midi';
 import { AudioEngine } from './audio/AudioEngine';
 import { exportSongToWav } from './audio/Exporter';
@@ -170,7 +170,8 @@ export function App() {
     loopEnabled: true,
     loopStartBar: 1,
     loopEndBar: 9,
-    totalBars: 16
+    totalBars: 16,
+    soundStyle: 'pop'
   });
 
   const [tracks, setTracks] = useState<Track[]>(DEFAULT_TRACKS);
@@ -429,7 +430,8 @@ export function App() {
       pan: 0,
       muted: false,
       soloed: false,
-      macros: { param1: 50, param2: 50 }
+      macros: { param1: 50, param2: 50 },
+      soundStyleOverride: null
     };
     collabManager.addTrack(newTrack);
     setActiveTrackId(newTrack.id);
@@ -540,6 +542,7 @@ export function App() {
         onStop={handleStop}
         onStartFresh={handleStartFresh}
         onMetaChange={(update) => collabManager.updateMeta(update)}
+        onSetSoundStyle={(style) => collabManager.setSoundStyle(style)}
         onFxChange={(update) => collabManager.updateMasterEffects(update)}
         onSelectTrack={setActiveTrackId}
         onSelectBlock={setSelectedBlockId}
@@ -561,6 +564,7 @@ export function App() {
         onExport={handleExport}
         onToggleKeyboard={() => setShowKeyboard(!showKeyboard)}
         onUpdateTrackMacros={(macros) => collabManager.updateTrack(activeTrackId, { macros })}
+        onUpdateTrackStyle={(style: SoundStyle | null) => collabManager.updateTrack(activeTrackId, { soundStyleOverride: style })}
         onUpdateBlockNotes={(blockId, notes) => collabManager.updateBlock(blockId, { notes })}
         onAuditionNote={(midi) => audioEngine.auditionNote(activeTrackId, midi)}
         onAuditionDrum={(sound) => audioEngine.auditionDrum(activeTrackId, sound)}

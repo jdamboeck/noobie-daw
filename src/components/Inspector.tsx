@@ -1,13 +1,15 @@
 import React from 'react';
 import { Sliders, Sparkles, Grid, X, Music } from 'lucide-react';
-import { DrumSound, MidiBlock, NoteEvent, ProjectMeta, Track } from '../types/daw';
+import { DrumSound, MidiBlock, NoteEvent, ProjectMeta, SoundStyle, Track } from '../types/daw';
 import { degreeToMidi, midiToNoteName } from '../music/harmonic';
+import { SOUND_STYLE_PRESETS } from '../music/soundStyles';
 
 interface InspectorProps {
   activeTrack: Track;
   selectedBlock: MidiBlock | null;
   meta: ProjectMeta;
   onUpdateTrackMacros: (macros: Partial<Track['macros']>) => void;
+  onUpdateTrackStyle: (style: SoundStyle | null) => void;
   onUpdateBlockNotes: (blockId: string, notes: NoteEvent[]) => void;
   onCloseBlock: () => void;
   onAuditionNote: (midi: number) => void;
@@ -28,6 +30,7 @@ export const Inspector: React.FC<InspectorProps> = ({
   selectedBlock,
   meta,
   onUpdateTrackMacros,
+  onUpdateTrackStyle,
   onUpdateBlockNotes,
   onCloseBlock,
   onAuditionNote,
@@ -109,6 +112,14 @@ export const Inspector: React.FC<InspectorProps> = ({
             <span className="text-base">🎛️</span>
             <span>{activeTrack.name} Sound Shapers</span>
           </div>
+
+          <label className="mb-3 flex flex-col gap-1 text-[11px] font-bold text-gray-300">
+            <span>🎨 Instrument sound</span>
+            <select className="rounded-lg border border-white/10 bg-[#202633] px-2 py-2 text-white" value={activeTrack.soundStyleOverride ?? 'follow'} onChange={event => onUpdateTrackStyle(event.target.value === 'follow' ? null : event.target.value as SoundStyle)}>
+              <option value="follow">Follow band · {SOUND_STYLE_PRESETS.find(style => style.id === (meta.soundStyle ?? 'pop'))?.name}</option>
+              {SOUND_STYLE_PRESETS.map(style => <option key={style.id} value={style.id}>{style.emoji} {style.name}</option>)}
+            </select>
+          </label>
 
           <div className="flex flex-col gap-3.5">
             {/* Macro 1 */}

@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
-import { MasterEffects, MidiBlock, ProjectMeta, Track, UserPresence } from '../types/daw';
+import { MasterEffects, MidiBlock, ProjectMeta, SoundStyle, Track, UserPresence } from '../types/daw';
 
 export interface TransportSyncMessage {
   action: 'play' | 'pause' | 'stop' | 'seek';
@@ -189,6 +189,13 @@ export class CollaborationManager {
   public updateMeta(meta: Partial<ProjectMeta>): void {
     this.doc.transact(() => {
       Object.entries(meta).forEach(([k, v]) => this.yMeta.set(k, v));
+    });
+  }
+
+  public setSoundStyle(style: SoundStyle): void {
+    this.doc.transact(() => {
+      this.yMeta.set('soundStyle', style);
+      this.yTracks.forEach(track => track.set('soundStyleOverride', null));
     });
   }
 

@@ -1,8 +1,9 @@
 import * as Tone from 'tone';
-import { DrumSound, InstrumentType } from '../types/daw';
+import { DrumSound, InstrumentType, SoundStyle } from '../types/daw';
 
 export interface InstrumentChannel {
   type: InstrumentType;
+  style: SoundStyle;
   volumeNode: Tone.Volume;
   pannerNode: Tone.Panner;
   triggerNote: (note: string | number, duration: number | string, time?: number, velocity?: number) => void;
@@ -17,21 +18,21 @@ export interface InstrumentChannel {
 /**
  * High-quality synthesized Drum Machine (808 / Modern Pop / Lo-Fi)
  */
-export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentChannel {
+export function createDrumChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
 
   // Drum Synthesizers with tight, punchy envelopes
   const kickSynth = new Tone.MembraneSynth({
-    pitchDecay: 0.05,
-    octaves: 6,
+    pitchDecay: style === 'rock' ? 0.035 : style === 'hip-hop' ? 0.075 : 0.05,
+    octaves: style === 'rock' ? 5 : style === 'hip-hop' ? 7 : 6,
     oscillator: { type: 'sine' },
-    envelope: { attack: 0.001, decay: 0.25, sustain: 0, release: 0.1 }
+    envelope: { attack: 0.001, decay: style === 'rock' ? 0.32 : style === 'hip-hop' ? 0.38 : 0.25, sustain: 0, release: 0.1 }
   });
 
   const snareNoise = new Tone.NoiseSynth({
-    noise: { type: 'white' },
-    envelope: { attack: 0.001, decay: 0.15, sustain: 0 }
+    noise: { type: style === 'hip-hop' ? 'pink' : 'white' },
+    envelope: { attack: 0.001, decay: style === 'rock' ? 0.22 : 0.15, sustain: 0 }
   });
   const snareTone = new Tone.MembraneSynth({
     pitchDecay: 0.01,
@@ -81,6 +82,7 @@ export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentCh
 
   return {
     type: 'drums',
+    style,
     volumeNode,
     pannerNode,
     triggerNote: () => {},
@@ -147,25 +149,25 @@ export function createDrumChannel(destination: Tone.ToneAudioNode): InstrumentCh
 /**
  * Punchy Analog / Sub Bass Synth Channel
  */
-export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentChannel {
+export function createBassChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
-  const distortion = new Tone.Distortion(0.08);
-  const filter = new Tone.Filter(1100, 'lowpass', -24);
-  const mainGain = new Tone.Gain(0.72);
-  const subGain = new Tone.Gain(0.8);
+  const distortion = new Tone.Distortion(style === 'rock' ? 0.2 : style === 'chiptunes' ? 0.03 : 0.08);
+  const filter = new Tone.Filter(style === 'hip-hop' ? 720 : 1100, 'lowpass', -24);
+  const mainGain = new Tone.Gain(style === 'chiptunes' ? 0.55 : 0.72);
+  const subGain = new Tone.Gain(style === 'hip-hop' ? 1 : style === 'chiptunes' ? 0.5 : 0.8);
 
   const synth = new Tone.MonoSynth({
-    oscillator: { type: 'sawtooth' },
+    oscillator: { type: style === 'chiptunes' ? 'square' : style === 'rock' ? 'fatsawtooth' : 'sawtooth' },
     filter: {
       Q: 2,
       type: 'lowpass',
       rolloff: -24
     },
     envelope: {
-      attack: 0.008,
-      decay: 0.3,
-      sustain: 0.42,
+      attack: style === 'chiptunes' ? 0.001 : 0.008,
+      decay: style === 'hip-hop' ? 0.18 : 0.3,
+      sustain: style === 'hip-hop' ? 0.58 : 0.42,
       release: 0.16
     },
     filterEnvelope: {
@@ -179,7 +181,7 @@ export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentCh
     }
   });
   const subSynth = new Tone.MonoSynth({
-    oscillator: { type: 'sine' },
+    oscillator: { type: style === 'chiptunes' ? 'square' : 'sine' },
     filter: { Q: 0.5, type: 'lowpass', rolloff: -12 },
     envelope: { attack: 0.012, decay: 0.24, sustain: 0.62, release: 0.18 },
     filterEnvelope: { attack: 0.01, decay: 0.25, sustain: 0.15, release: 0.2, baseFrequency: 45, octaves: 1, exponent: 2 }
@@ -196,6 +198,7 @@ export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentCh
 
   return {
     type: 'bass',
+    style,
     volumeNode,
     pannerNode,
     triggerNote: (note, duration, time, velocity = 100) => {
@@ -244,22 +247,22 @@ export function createBassChannel(destination: Tone.ToneAudioNode): InstrumentCh
 /**
  * Polyphonic Keys & Chord Channel (Felt Piano / Warm Rhodes / Lush Pad)
  */
-export function createKeysChannel(destination: Tone.ToneAudioNode): InstrumentChannel {
+export function createKeysChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
-  const chorus = new Tone.Chorus(2.0, 2.0, 0.25).start();
-  const filter = new Tone.Filter(4000, 'lowpass');
+  const chorus = new Tone.Chorus(2.0, 2.0, style === 'rock' ? 0.12 : 0.25).start();
+  const filter = new Tone.Filter(style === 'hip-hop' ? 2800 : style === 'rock' ? 5600 : 4000, 'lowpass');
 
   const synth = new Tone.PolySynth(Tone.FMSynth, {
-    harmonicity: 2,
-    modulationIndex: 2.5,
-    oscillator: { type: 'sine' },
-    modulation: { type: 'sine' },
+    harmonicity: style === 'chiptunes' ? 1 : style === 'rock' ? 2.5 : 2,
+    modulationIndex: style === 'chiptunes' ? 0.15 : style === 'hip-hop' ? 1.5 : 2.5,
+    oscillator: { type: style === 'chiptunes' ? 'square' : style === 'rock' ? 'triangle' : 'sine' },
+    modulation: { type: style === 'chiptunes' ? 'square' : 'sine' },
     envelope: {
-      attack: 0.008,
-      decay: 0.45,
-      sustain: 0.2,
-      release: 0.45
+      attack: style === 'chiptunes' ? 0.002 : 0.008,
+      decay: style === 'hip-hop' ? 0.22 : 0.45,
+      sustain: style === 'chiptunes' ? 0.12 : 0.2,
+      release: style === 'chiptunes' ? 0.08 : 0.45
     },
     modulationEnvelope: { attack: 0.01, decay: 0.28, sustain: 0.15, release: 0.3 }
   });
@@ -273,6 +276,7 @@ export function createKeysChannel(destination: Tone.ToneAudioNode): InstrumentCh
 
   return {
     type: 'keys',
+    style,
     volumeNode,
     pannerNode,
     triggerNote: (note, duration, time, velocity = 100) => {
@@ -316,19 +320,19 @@ export function createKeysChannel(destination: Tone.ToneAudioNode): InstrumentCh
 /**
  * Expressive Lead & Melody Synth Channel
  */
-export function createLeadChannel(destination: Tone.ToneAudioNode): InstrumentChannel {
+export function createLeadChannel(destination: Tone.ToneAudioNode, style: SoundStyle = 'pop'): InstrumentChannel {
   const volumeNode = new Tone.Volume(0);
   const pannerNode = new Tone.Panner(0);
-  const delay = new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.2, wet: 0.15 });
-  const filter = new Tone.Filter(4500, 'lowpass');
+  const delay = new Tone.PingPongDelay({ delayTime: '8n', feedback: style === 'chiptunes' ? 0.08 : 0.2, wet: style === 'hip-hop' ? 0.22 : 0.15 });
+  const filter = new Tone.Filter(style === 'rock' ? 6200 : style === 'hip-hop' ? 3000 : 4500, 'lowpass');
 
   const synth = new Tone.MonoSynth({
-    oscillator: { type: 'sawtooth' },
+    oscillator: { type: style === 'chiptunes' ? 'square' : style === 'rock' ? 'fatsawtooth' : style === 'hip-hop' ? 'triangle' : 'sawtooth' },
     envelope: {
-      attack: 0.006,
-      decay: 0.22,
-      sustain: 0.3,
-      release: 0.16
+      attack: style === 'chiptunes' ? 0.001 : 0.006,
+      decay: style === 'hip-hop' ? 0.16 : 0.22,
+      sustain: style === 'chiptunes' ? 0.18 : 0.3,
+      release: style === 'chiptunes' ? 0.06 : 0.16
     },
     filterEnvelope: {
       attack: 0.01,
@@ -340,7 +344,7 @@ export function createLeadChannel(destination: Tone.ToneAudioNode): InstrumentCh
     }
   });
 
-  synth.portamento = 0.03; // Smooth subtle glide for lead melodies
+  synth.portamento = style === 'chiptunes' ? 0 : 0.03;
   synth.connect(filter);
   filter.connect(delay);
   delay.connect(pannerNode);
@@ -349,6 +353,7 @@ export function createLeadChannel(destination: Tone.ToneAudioNode): InstrumentCh
 
   return {
     type: 'lead',
+    style,
     volumeNode,
     pannerNode,
     triggerNote: (note, duration, time, velocity = 100) => {

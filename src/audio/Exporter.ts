@@ -116,16 +116,16 @@ export async function exportSongToWav(
       let channel: InstrumentChannel;
       switch (track.instrumentType) {
         case 'drums':
-          channel = createDrumChannel(masterInput);
+          channel = createDrumChannel(masterInput, track.soundStyleOverride ?? meta.soundStyle ?? 'pop');
           break;
         case 'bass':
-          channel = createBassChannel(masterInput);
+          channel = createBassChannel(masterInput, track.soundStyleOverride ?? meta.soundStyle ?? 'pop');
           break;
         case 'keys':
-          channel = createKeysChannel(masterInput);
+          channel = createKeysChannel(masterInput, track.soundStyleOverride ?? meta.soundStyle ?? 'pop');
           break;
         case 'lead':
-          channel = createLeadChannel(masterInput);
+          channel = createLeadChannel(masterInput, track.soundStyleOverride ?? meta.soundStyle ?? 'pop');
           break;
       }
       channel.volumeNode.volume.value = track.muted ? -Infinity : Tone.gainToDb(track.volume);

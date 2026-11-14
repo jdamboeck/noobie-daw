@@ -1,5 +1,5 @@
 import * as Tone from 'tone';
-import { DrumSound, InstrumentType, MasterEffects, MidiBlock, NoteEvent, ProjectMeta, RootNote, ScaleMode, Track } from '../types/daw';
+import { DrumSound, InstrumentType, MasterEffects, MidiBlock, NoteEvent, ProjectMeta, RootNote, ScaleMode, SoundStyle, Track } from '../types/daw';
 import { degreeToMidi, midiToNoteName, snapMidiToScale } from '../music/harmonic';
 import {
   createBassChannel,
@@ -158,9 +158,10 @@ export class AudioEngine {
     // Create or update track channels connected to masterInput
     for (const track of this.tracks) {
       let channel = this.channels.get(track.id);
-      if (!channel || channel.type !== track.instrumentType) {
+      const style = track.soundStyleOverride ?? this.projectMeta.soundStyle ?? 'pop';
+      if (!channel || channel.type !== track.instrumentType || channel.style !== style) {
         if (channel) channel.dispose();
-        channel = this.createChannelForType(track.instrumentType);
+        channel = this.createChannelForType(track.instrumentType, style);
         this.channels.set(track.id, channel);
       }
 
@@ -173,16 +174,16 @@ export class AudioEngine {
     if (this.scheduleId === null) this.setupScheduler();
   }
 
-  private createChannelForType(type: InstrumentType): InstrumentChannel {
+  private createChannelForType(type: InstrumentType, style: SoundStyle): InstrumentChannel {
     switch (type) {
       case 'drums':
-        return createDrumChannel(this.masterInput);
+        return createDrumChannel(this.masterInput, style);
       case 'bass':
-        return createBassChannel(this.masterInput);
+        return createBassChannel(this.masterInput, style);
       case 'keys':
-        return createKeysChannel(this.masterInput);
+        return createKeysChannel(this.masterInput, style);
       case 'lead':
-        return createLeadChannel(this.masterInput);
+        return createLeadChannel(this.masterInput, style);
     }
   }
 
