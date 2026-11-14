@@ -17,6 +17,38 @@ export interface BlockTemplate {
   }>;
 }
 
+const makeBassNotes = (roots: number[]) => roots.flatMap((root, barIndex) => [0, 4, 8, 12].map((stepInBar, beat) => ({
+  degree: beat === 2 ? root + 4 : root,
+  octaveOffset: 0,
+  step: barIndex * 16 + stepInBar,
+  durationSteps: 2,
+  velocity: beat === 0 ? 108 : beat === 2 ? 94 : 100
+})));
+
+const makeTriadProgression = (roots: number[]) => roots.flatMap((root, barIndex) => [0, 2, 4].map((interval, tone) => ({
+  degree: root + interval,
+  octaveOffset: root === 0 ? 0 : -1,
+  step: barIndex * 16,
+  durationSteps: 13,
+  velocity: tone === 0 ? 92 : tone === 1 ? 84 : 78
+})));
+
+const makeSeventhProgression = (roots: number[]) => roots.flatMap((root, barIndex) => [0, 2, 4, 6].map((interval, tone) => ({
+  degree: root + interval,
+  octaveOffset: root === 0 ? 0 : -1,
+  step: barIndex * 16,
+  durationSteps: 12,
+  velocity: tone === 0 ? 82 : 70
+})));
+
+const makeLeadArpeggio = (roots: number[]) => roots.flatMap((root, barIndex) => [root, root + 2, root + 4, root + 2].map((degree, beat) => ({
+  degree,
+  octaveOffset: 1,
+  step: barIndex * 16 + beat * 4,
+  durationSteps: beat === 3 ? 3 : 2,
+  velocity: beat === 0 ? 96 : beat === 2 ? 90 : 84
+})));
+
 export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
   // ==========================================
   // 🥁 DRUMS & BEATS (2 bars = 32 steps)
@@ -133,6 +165,32 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
       { drumSound: 'perc', step: 30, durationSteps: 1, velocity: 95 },
     ]
   },
+  {
+    name: 'Steady Backbeat',
+    emoji: '🛤️',
+    category: 'The Basics',
+    instrumentType: 'drums',
+    durationBars: 2,
+    description: 'A classic kick-on-one, clap-on-two-and-four pop groove.',
+    notes: [
+      ...[0, 8, 16, 24].map(step => ({ drumSound: 'kick' as const, step, durationSteps: 2, velocity: 110 })),
+      ...[4, 12, 20, 28].map(step => ({ drumSound: 'snare' as const, step, durationSteps: 2, velocity: 108 })),
+      ...Array.from({ length: 16 }, (_, index) => ({ drumSound: 'hat_closed' as const, step: index * 2, durationSteps: 1, velocity: index % 2 === 0 ? 78 : 62 }))
+    ]
+  },
+  {
+    name: 'Half-Time Giants',
+    emoji: '🦕',
+    category: 'The Basics',
+    instrumentType: 'drums',
+    durationBars: 2,
+    description: 'Big open spaces, with the snare landing on beat three.',
+    notes: [
+      ...[0, 12, 16, 28].map(step => ({ drumSound: 'kick' as const, step, durationSteps: 2, velocity: 112 })),
+      ...[8, 24].map(step => ({ drumSound: 'snare' as const, step, durationSteps: 2, velocity: 116 })),
+      ...[2, 6, 10, 14, 18, 22, 26, 30].map(step => ({ drumSound: 'hat_closed' as const, step, durationSteps: 1, velocity: 72 }))
+    ]
+  },
 
   // ==========================================
   // 🎸 BASSLINES (2 bars = 32 steps)
@@ -143,20 +201,16 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
     category: 'Funky & Electro',
     instrumentType: 'bass',
     durationBars: 2,
-    description: 'Steady mechanical bass pumping on the beat.',
-    notes: [
-      ...[0, 2, 4, 6, 8, 10, 12, 14].map(s => ({ degree: 0, octaveOffset: 0, step: s, durationSteps: 1, velocity: 105 })),
-      ...[16, 18, 20, 22].map(s => ({ degree: 4, octaveOffset: 0, step: s, durationSteps: 1, velocity: 100 })),
-      ...[24, 26, 28, 30].map(s => ({ degree: 0, octaveOffset: 0, step: s, durationSteps: 1, velocity: 105 }))
-    ]
+    description: 'Pulses between the home note and its fifth: a dependable scale-built foundation.',
+    notes: makeBassNotes([0, 4])
   },
   {
-    name: 'Bouncing Frog',
+    name: 'Octave Hopper',
     emoji: '🐸',
     category: 'Groovy & Funk',
     instrumentType: 'bass',
     durationBars: 2,
-    description: 'Jumping octave pops full of mischievous funk!',
+    description: 'A root-note bounce with a few scale-step hops for a playful bass hook.',
     notes: [
       { degree: 0, octaveOffset: 0, step: 0, durationSteps: 1, velocity: 110 },
       { degree: 0, octaveOffset: 1, step: 3, durationSteps: 1, velocity: 95 },
@@ -177,7 +231,7 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
     category: 'Jazz & Soul',
     instrumentType: 'bass',
     durationBars: 2,
-    description: 'Step-by-step melodic walking bassline.',
+    description: 'A scale walk that circles home and uses a leading note to resolve.',
     notes: [
       { degree: 0, octaveOffset: 0, step: 0, durationSteps: 2, velocity: 105 },
       { degree: 2, octaveOffset: 0, step: 4, durationSteps: 2, velocity: 95 },
@@ -219,6 +273,33 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
       { degree: 0, octaveOffset: 0, step: 24, durationSteps: 2, velocity: 110 },
     ]
   },
+  {
+    name: 'Home Base Bounce',
+    emoji: '🏠',
+    category: 'The Basics',
+    instrumentType: 'bass',
+    durationBars: 2,
+    description: 'A steady tonic groove with fifth-note pops to make the root feel strong.',
+    notes: makeBassNotes([0, 0])
+  },
+  {
+    name: 'Relative Pair',
+    emoji: '🧩',
+    category: 'Chord Friends',
+    instrumentType: 'bass',
+    durationBars: 2,
+    description: 'Moves from scale degree six to four, a smooth, familiar pop-song turn.',
+    notes: makeBassNotes([5, 3])
+  },
+  {
+    name: 'Lift to Home',
+    emoji: '🎈',
+    category: 'Chord Friends',
+    instrumentType: 'bass',
+    durationBars: 2,
+    description: 'Steps from four to five, ready to resolve back to the home chord.',
+    notes: makeBassNotes([3, 4])
+  },
 
   // ==========================================
   // 🎹 CHORDS & KEYS (4 bars = 64 steps)
@@ -229,25 +310,8 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
     category: 'Happy & Bright',
     instrumentType: 'keys',
     durationBars: 4,
-    description: 'Cheerful chords that sound like a warm sunny morning!',
-    notes: [
-      // Bar 1: I chord (0, 2, 4)
-      { degree: 0, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 90 },
-      { degree: 2, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 85 },
-      { degree: 4, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 85 },
-      // Bar 2: IV chord (3, 5, 7)
-      { degree: 3, octaveOffset: 0, step: 16, durationSteps: 6, velocity: 90 },
-      { degree: 5, octaveOffset: 0, step: 16, durationSteps: 6, velocity: 85 },
-      { degree: 7, octaveOffset: 0, step: 16, durationSteps: 6, velocity: 85 },
-      // Bar 3: V chord (4, 6, 8)
-      { degree: 4, octaveOffset: 0, step: 32, durationSteps: 6, velocity: 90 },
-      { degree: 6, octaveOffset: 0, step: 32, durationSteps: 6, velocity: 85 },
-      { degree: 8, octaveOffset: 0, step: 32, durationSteps: 6, velocity: 85 },
-      // Bar 4: I chord (0, 2, 4)
-      { degree: 0, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 95 },
-      { degree: 2, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 90 },
-      { degree: 4, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 90 },
-    ]
+    description: 'A scale-built home–subdominant–dominant–home chord journey.',
+    notes: makeTriadProgression([0, 3, 4, 0])
   },
   {
     name: 'Movie Ballad',
@@ -255,25 +319,8 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
     category: 'Emotional & Deep',
     instrumentType: 'keys',
     durationBars: 4,
-    description: 'Famous emotional chords heard in Hollywood movie themes.',
-    notes: [
-      // Bar 1: vi
-      { degree: 5, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 85 },
-      { degree: 7, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 80 },
-      { degree: 9, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 85 },
-      // Bar 2: IV
-      { degree: 3, octaveOffset: 0, step: 16, durationSteps: 6, velocity: 85 },
-      { degree: 5, octaveOffset: 0, step: 16, durationSteps: 6, velocity: 80 },
-      { degree: 7, octaveOffset: 0, step: 16, durationSteps: 6, velocity: 85 },
-      // Bar 3: I
-      { degree: 0, octaveOffset: 0, step: 32, durationSteps: 6, velocity: 90 },
-      { degree: 2, octaveOffset: 0, step: 32, durationSteps: 6, velocity: 85 },
-      { degree: 4, octaveOffset: 0, step: 32, durationSteps: 6, velocity: 85 },
-      // Bar 4: V
-      { degree: 4, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 90 },
-      { degree: 6, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 85 },
-      { degree: 8, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 85 },
-    ]
+    description: 'A familiar six–four–one–five scale-degree path, built from your selected notes.',
+    notes: makeTriadProgression([5, 3, 0, 4])
   },
   {
     name: 'Hero Fanfare',
@@ -281,21 +328,8 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
     category: 'Epic & Uplifting',
     instrumentType: 'keys',
     durationBars: 4,
-    description: 'Triumphant chords for winning the grand championship!',
-    notes: [
-      { degree: 0, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 95 },
-      { degree: 2, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 90 },
-      { degree: 4, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 90 },
-      { degree: 4, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 95 },
-      { degree: 6, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 90 },
-      { degree: 8, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 90 },
-      { degree: 5, octaveOffset: -1, step: 32, durationSteps: 6, velocity: 95 },
-      { degree: 7, octaveOffset: -1, step: 32, durationSteps: 6, velocity: 90 },
-      { degree: 9, octaveOffset: -1, step: 32, durationSteps: 6, velocity: 90 },
-      { degree: 3, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 95 },
-      { degree: 5, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 90 },
-      { degree: 7, octaveOffset: 0, step: 48, durationSteps: 6, velocity: 90 },
-    ]
+    description: 'An uplifting one–five–six–four loop, with every chord drawn from your scale.',
+    notes: makeTriadProgression([0, 4, 5, 3])
   },
   {
     name: 'Dreamy Cloud Pad',
@@ -303,21 +337,44 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
     category: 'Relaxing & Ambient',
     instrumentType: 'keys',
     durationBars: 4,
-    description: 'Floating jazzy 7th chords that feel like floating in the sky.',
-    notes: [
-      { degree: 1, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 75 },
-      { degree: 3, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 70 },
-      { degree: 5, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 75 },
-      { degree: 7, octaveOffset: 0, step: 0, durationSteps: 6, velocity: 70 },
-      { degree: 4, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 80 },
-      { degree: 6, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 75 },
-      { degree: 8, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 75 },
-      { degree: 10, octaveOffset: -1, step: 16, durationSteps: 6, velocity: 70 },
-      { degree: 0, octaveOffset: 0, step: 32, durationSteps: 8, velocity: 80 },
-      { degree: 2, octaveOffset: 0, step: 32, durationSteps: 8, velocity: 75 },
-      { degree: 4, octaveOffset: 0, step: 32, durationSteps: 8, velocity: 75 },
-      { degree: 6, octaveOffset: 0, step: 32, durationSteps: 8, velocity: 70 },
-    ]
+    description: 'A gentle two–five–one seventh-chord turn in seven-note scales, with an extra five.',
+    notes: makeSeventhProgression([1, 4, 0, 4])
+  },
+  {
+    name: 'Two-Five Landing',
+    emoji: '🛬',
+    category: 'Chord Friends',
+    instrumentType: 'keys',
+    durationBars: 4,
+    description: 'In seven-note scales, this classic two-to-five-to-one cadence lands back at home.',
+    notes: makeTriadProgression([1, 4, 0, 0])
+  },
+  {
+    name: 'Home Again',
+    emoji: '🏡',
+    category: 'Chord Friends',
+    instrumentType: 'keys',
+    durationBars: 4,
+    description: 'Home, relative six, four, then home again—a friendly way to finish a phrase.',
+    notes: makeTriadProgression([0, 5, 3, 0])
+  },
+  {
+    name: 'Falling Leaves',
+    emoji: '🍂',
+    category: 'Chord Friends',
+    instrumentType: 'keys',
+    durationBars: 4,
+    description: 'A stepwise six–five–four move that settles softly on the home chord.',
+    notes: makeTriadProgression([5, 4, 3, 0])
+  },
+  {
+    name: 'Scale Staircase',
+    emoji: '🪜',
+    category: 'The Basics',
+    instrumentType: 'keys',
+    durationBars: 4,
+    description: 'Four neighboring scale chords climb together before returning to the root.',
+    notes: makeTriadProgression([0, 1, 2, 0])
   },
 
   // ==========================================
@@ -393,6 +450,45 @@ export const SMART_BLOCKS_TEMPLATES: BlockTemplate[] = [
       { degree: 0, octaveOffset: 1, step: 16, durationSteps: 3, velocity: 115 },
       { degree: 2, octaveOffset: 1, step: 22, durationSteps: 1, velocity: 95 },
       { degree: 4, octaveOffset: 1, step: 26, durationSteps: 2, velocity: 105 },
+    ]
+  },
+  {
+    name: 'Home to the Fifth',
+    emoji: '🛝',
+    category: 'Chord Hoppers',
+    instrumentType: 'lead',
+    durationBars: 2,
+    description: 'Climbs through the home chord, then hops through the dominant chord.',
+    notes: makeLeadArpeggio([0, 4])
+  },
+  {
+    name: 'Six to Four',
+    emoji: '🧭',
+    category: 'Chord Hoppers',
+    instrumentType: 'lead',
+    durationBars: 2,
+    description: 'A melody made from the chord tones of scale degrees six and four.',
+    notes: makeLeadArpeggio([5, 3])
+  },
+  {
+    name: 'Fifth Comes Home',
+    emoji: '🏁',
+    category: 'Chord Hoppers',
+    instrumentType: 'lead',
+    durationBars: 2,
+    description: 'Follows the five chord back to the home chord for a satisfying landing.',
+    notes: makeLeadArpeggio([4, 0])
+  },
+  {
+    name: 'Scale-Step Skip',
+    emoji: '🦘',
+    category: 'The Basics',
+    instrumentType: 'lead',
+    durationBars: 2,
+    description: 'A simple up-and-down tune using only notes from your selected scale.',
+    notes: [
+      ...[0, 2, 4, 2, 3, 5, 4, 2].map((degree, index) => ({ degree, octaveOffset: 1, step: index * 2, durationSteps: 1, velocity: index % 4 === 0 ? 94 : 82 })),
+      ...[0, 2, 4, 6, 5, 3, 2, 0].map((degree, index) => ({ degree, octaveOffset: 1, step: 16 + index * 2, durationSteps: index === 7 ? 2 : 1, velocity: index === 7 ? 96 : 84 }))
     ]
   }
 ];

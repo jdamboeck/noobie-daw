@@ -267,13 +267,13 @@ export const MusicGarden: React.FC<MusicGardenProps> = (props) => {
         </div>
 
         <div className="garden-seed-shelf">
-          <div className="garden-seed-heading"><div><span className="garden-kicker">PICK A SEED</span><h3>Choose a sound to plant</h3></div><p>Every seed already sounds good together.</p></div>
+          <div className="garden-seed-heading"><div><span className="garden-kicker">PICK A SEED</span><h3>Choose a sound to plant</h3></div><p>Melodies and chords use notes from your chosen scale.</p></div>
           <div className="garden-seed-filters" role="group" aria-label="Sound seed types">
             {SOUNDS.map(sound => <button key={sound.type} className={`garden-filter ${sound.color} ${seedType === sound.type ? 'is-selected' : ''}`} onClick={() => setSeedType(sound.type)} aria-pressed={seedType === sound.type}><span>{sound.emoji}</span>{sound.label}</button>)}
           </div>
           <button className="garden-blank-button" onClick={() => { props.onPlantBlank(seedType); setShowEditor(true); }}><span className="garden-blank-emoji" aria-hidden="true">🪴</span><span className="garden-blank-copy"><strong>Start with a blank pattern</strong><small>Make every note yourself</small></span><Plus size={19} aria-hidden="true" /></button>
           <div className="garden-seed-cards">
-            {seedTemplates.slice(0, 6).map(template => <article className={`garden-seed-card ${soundFor({ instrumentType: template.instrumentType } as Track).color}`} key={template.name}>
+            {seedTemplates.map(template => <article className={`garden-seed-card ${soundFor({ instrumentType: template.instrumentType } as Track).color}`} key={template.name}>
               <div className="garden-seed-card-emoji" aria-hidden="true">{template.emoji}</div>
               <div className="garden-seed-card-copy"><h4>{template.name}</h4><p>{template.description}</p></div>
               <div className="garden-seed-card-actions"><button className="garden-listen-button" onClick={() => props.onPreviewSeed(template)} aria-label={`Listen to ${template.name}`}><Headphones size={17} /><span>Listen</span></button><button className="garden-plant-button" onClick={() => props.onPlantSeed(template)}><Plus size={17} /><span>Plant it!</span></button></div>
